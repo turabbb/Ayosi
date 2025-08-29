@@ -1,0 +1,207 @@
+import { Link } from "react-router-dom";
+import { ShoppingCart, Search, UserCog, Menu, ChevronDown, Settings, LogOut } from "lucide-react";
+import { useScrollDirection } from "@/hooks/useScrollDirection";
+import { useCart } from "@/context/CartContext";
+import { useAuth } from "@/context/AuthContext";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { CartDrawer } from "@/components/CartDrawer";
+import { SearchDialog } from "@/components/SearchDialog";
+import { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "@/hooks/use-toast";
+import { motion, AnimatePresence } from "framer-motion";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+
+export const Navbar = () => {
+  const dir = useScrollDirection();
+  const { totalItems } = useCart();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [contactModal, setContactModal] = useState(false);
+  const dropdownRef = useRef(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      setIsDropdownOpen(false);
+      toast({ title: "Logged out successfully" });
+      navigate("/");
+    } catch (error) {
+      toast({ title: "Logout failed", variant: "destructive" });
+    }
+  };
+
+  const handleDashboard = () => {
+    setIsDropdownOpen(false);
+    navigate("/admin/dashboard");
+  };
+
+  const handleContactClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setContactModal(true);
+  };
+
+  return (
+    <>
+      <header
+      className={`fixed top-0 inset-x-0 z-50 transition-transform duration-300 ${
+        dir === "down" ? "-translate-y-full" : "translate-y-0"
+      }`}
+    >
+      <div className="backdrop-blur-md bg-background/80 border-b">
+        <nav className="mx-auto max-w-7xl px-2 md:px-4 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Sheet>
+              <SheetTrigger className="md:hidden p-2">
+                <Menu className="h-5 w-5" />
+              </SheetTrigger>
+              <SheetContent side="left" className="w-64">
+                <div className="mt-8 flex flex-col gap-4">
+                  <Link to="/" className="hover:underline">Home</Link>
+                  <Link to="/collections" className="hover:underline">Collections</Link>
+                  <button onClick={handleContactClick} className="hover:underline text-left">Contact Us</button>
+                </div>
+              </SheetContent>
+            </Sheet>
+            <Link to="/" className="font-serif text-2xl tracking-tight">Ayosi</Link>
+          </div>
+
+          <div className="hidden md:flex items-center gap-8 text-sm">
+            <Link to="/" className="hover:opacity-80 transition-opacity">Home</Link>
+            <Link to="/collections" className="hover:opacity-80 transition-opacity">Collections</Link>
+            <button onClick={handleContactClick} className="hover:opacity-80 transition-opacity">Contact Us</button>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <SearchDialog>
+              <button aria-label="Search" className="p-2 rounded-md hover:bg-muted transition-colors">
+                <Search className="h-5 w-5" />
+              </button>
+            </SearchDialog>
+
+            <CartDrawer>
+              <button aria-label="Cart" className="relative p-2 rounded-md hover:bg-muted transition-colors">
+                <ShoppingCart className="h-5 w-5" />
+                <AnimatePresence>
+                  {totalItems > 0 && (
+                    <motion.span 
+                      initial={{ scale: 0, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      exit={{ scale: 0, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="absolute -top-1 -right-1 text-[10px] leading-none px-1.5 py-0.5 rounded-full bg-foreground text-background"
+                    >
+                      {totalItems}
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </button>
+            </CartDrawer>
+
+            {/* Admin Section - Only show if user is logged in */}
+            {user ? (
+              <div className="relative" ref={dropdownRef}>
+                <button
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                  className="flex items-center gap-1 p-2 rounded-md hover:bg-muted transition-colors"
+                  aria-label="Admin Menu"
+                >
+                  <UserCog className="h-5 w-5" />
+                  <ChevronDown 
+                    className={`h-3 w-3 transition-transform duration-200 ${
+                      isDropdownOpen ? 'rotate-180' : ''
+                    }`} 
+                  />
+                </button>
+                
+                {/* Dropdown Menu */}
+                <div
+                  className={`absolute right-0 mt-2 w-48 bg-background border rounded-lg shadow-lg transition-all duration-200 ${
+                    isDropdownOpen
+                      ? 'opacity-100 translate-y-0 visible'
+                      : 'opacity-0 -translate-y-2 invisible'
+                  }`}
+                  style={{ zIndex: 1000 }}
+                >
+                  <div className="py-2">
+                    <div className="px-4 py-2 text-sm text-muted-foreground border-b">
+                      Welcome, {user.username}
+                    </div>
+                    
+                    <button
+                      onClick={handleDashboard}
+                      className="w-full flex items-center gap-3 px-4 py-2 text-sm hover:bg-muted transition-colors text-left"
+                    >
+                      <Settings className="h-4 w-4" />
+                      Dashboard
+                    </button>
+                    
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-3 px-4 py-2 text-sm hover:bg-muted transition-colors text-left text-red-600 hover:text-red-700"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      Logout
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </nav>
+      </div>
+    </header>
+
+    {/* Contact Modal */}
+    <Dialog open={contactModal} onOpenChange={setContactModal}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="text-lg font-medium">Contact Us</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 pt-4">
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            We're here to help with any questions or concerns you may have. Feel free to reach out to us anytime.
+          </p>
+          <div className="space-y-3">
+            <div>
+              <p className="text-sm font-medium mb-1">Email</p>
+              <a 
+                href="mailto:ayosi.pk@gmail.com" 
+                className="text-sm text-primary hover:underline"
+              >
+                ayosi.pk@gmail.com
+              </a>
+            </div>
+            <div>
+              <p className="text-sm font-medium mb-1">Instagram</p>
+              <a 
+                href="https://www.instagram.com/ayosibyarooj/" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-sm text-primary hover:underline"
+              >
+                Message us on Instagram
+              </a>
+            </div>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+    </>
+  );
+};
