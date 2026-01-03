@@ -127,7 +127,7 @@ export const Footer = () => {
             <div>
               <h4 className="text-sm font-medium mb-2">Returns Policy</h4>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                We currently do not accept returns on our jewelry pieces. Each item is crafted with care and quality assurance. Please review your order carefully before purchase.
+                We take good care of our customers and every defected piece is returned. Each item is crafted with care and quality assurance. You can contact us at our instagram page incase of any issue.
               </p>
             </div>
           </div>

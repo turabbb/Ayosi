@@ -573,7 +573,6 @@ const Checkout = () => {
                             <h4 className="font-medium text-green-900 mb-2">Cash on Delivery Selected</h4>
                             <div className="text-sm text-green-800 space-y-2">
                               <p>Pay Rs. {Math.round(finalTotal)} when your order is delivered</p>
-                              <p>Inspect your items before payment</p>
                               <p>No advance payment required</p>
                               <p>Secure and hassle-free</p>
                             </div>
