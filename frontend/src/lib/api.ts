@@ -12,8 +12,8 @@ const api = axios.create({
 // Add request interceptor for authentication and error handling
 api.interceptors.request.use(
   (config) => {
-    // Get token from localStorage
-    const token = localStorage.getItem('token');
+    // Get token from localStorage (matches STORAGE_KEYS.token in AuthContext)
+    const token = localStorage.getItem('jewel_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
