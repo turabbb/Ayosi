@@ -18,6 +18,7 @@ const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:8080',
   'http://localhost:3000',
+  'https://ayosi.vercel.app',
   process.env.FRONTEND_URL
 ].filter(Boolean);
 
@@ -29,7 +30,6 @@ const corsOptions = {
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
-      console.log('Blocked by CORS:', origin);
       callback(new Error('Not allowed by CORS'));
     }
   },
