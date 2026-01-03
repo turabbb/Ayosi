@@ -25,6 +25,7 @@ const STORAGE_KEYS = {
   adminStatus: 'jewel_admin',
   user: 'jewel_user',
   loginTime: 'jewel_login_time',
+  token: 'jewel_token',
 };
 
 export const useAuth = () => {
@@ -121,11 +122,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     logout();
   };
 
-  const saveSession = (userData: User) => {
+  const saveSession = (userData: User, token?: string) => {
     try {
       localStorage.setItem(STORAGE_KEYS.adminStatus, 'true');
       localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(userData));
       localStorage.setItem(STORAGE_KEYS.loginTime, Date.now().toString());
+      if (token) {
+        localStorage.setItem(STORAGE_KEYS.token, token);
+      }
     } catch (error) {
       console.error('Error saving session:', error);
     }
@@ -136,6 +140,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       localStorage.removeItem(STORAGE_KEYS.adminStatus);
       localStorage.removeItem(STORAGE_KEYS.user);
       localStorage.removeItem(STORAGE_KEYS.loginTime);
+      localStorage.removeItem(STORAGE_KEYS.token);
     } catch (error) {
       console.error('Error clearing stored session:', error);
     }
@@ -153,7 +158,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           email: response.email,
         };
         setUser(userData);
-        saveSession(userData);
+        saveSession(userData, response.token);
         return true;
       }
       return false;

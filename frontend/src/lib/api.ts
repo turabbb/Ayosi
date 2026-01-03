@@ -9,9 +9,14 @@ const api = axios.create({
   timeout: 30000, // Increased timeout for production (Render cold starts)
 });
 
-// Add request interceptor for better error handling
+// Add request interceptor for authentication and error handling
 api.interceptors.request.use(
   (config) => {
+    // Get token from localStorage
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
     return config;
   },
   (error) => {
