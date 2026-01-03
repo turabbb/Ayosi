@@ -74,9 +74,4 @@ app.use('*', (req, res) => {
 });
 
 // Start the server and listen on the specified port
-app.listen(port, () => {
-  console.log(`🚀 Server is listening on http://localhost:${port}`);
-  console.log(`📊 Health check: http://localhost:${port}/health`);
-  console.log(`🔗 API base: http://localhost:${port}/api`);
-  console.log(`🌐 CORS enabled for: ${corsOptions.origin.join(', ')}`);
-});
+app.listen(port);

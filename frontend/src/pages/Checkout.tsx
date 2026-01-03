@@ -12,11 +12,12 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
 import { ordersAPI } from "@/lib/api";
 import { sendOrderConfirmationEmail } from "@/lib/emailService";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Upload, CreditCard, Truck, Copy, CheckCircle } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import PageTransition from "@/components/PageTransition";
+import { provinces, getDeliveryFee, getBaseDeliveryFee } from "@/lib/provinces";
 
 const FormSchema = z.object({
   name: z.string().min(2),
@@ -24,6 +25,7 @@ const FormSchema = z.object({
   phone: z.string().min(6),
   address: z.string().min(5),
   city: z.string().min(2),
+  province: z.string().min(1, "Please select a province"),
   country: z.string().default("Pakistan"),
   paymentMethod: z.enum(["bank_transfer", "cod"]),
   selectedAccount: z.string().optional(),
@@ -32,6 +34,8 @@ const FormSchema = z.object({
 
 type FormValues = z.infer<typeof FormSchema>;
 
+const CHECKOUT_CACHE_KEY = 'ayosi_checkout_form';
+
 const Checkout = () => {
   const { items, totalPrice, clearCart } = useCart();
   const navigate = useNavigate();
@@ -39,15 +43,59 @@ const Checkout = () => {
     resolver: zodResolver(FormSchema), 
     defaultValues: { 
       paymentMethod: "bank_transfer",
-      country: "Pakistan"
+      country: "Pakistan",
+      province: ""
     } 
   });
   const [transactionProof, setTransactionProof] = useState<File | null>(null);
   const [selectedAccount, setSelectedAccount] = useState("");
   const [copiedAccount, setCopiedAccount] = useState("");
 
-  // Shipping cost for Pakistan - Free shipping for orders Rs. 5000+
-  const SHIPPING_COST = totalPrice >= 5000 ? 0 : 300;
+  // Load cached form data on mount
+  useEffect(() => {
+    try {
+      const cached = sessionStorage.getItem(CHECKOUT_CACHE_KEY);
+      if (cached) {
+        const data = JSON.parse(cached);
+        if (data.name) setValue('name', data.name);
+        if (data.email) setValue('email', data.email);
+        if (data.phone) setValue('phone', data.phone);
+        if (data.address) setValue('address', data.address);
+        if (data.city) setValue('city', data.city);
+        if (data.province) setValue('province', data.province);
+        if (data.paymentMethod) setValue('paymentMethod', data.paymentMethod);
+        if (data.selectedAccount) setSelectedAccount(data.selectedAccount);
+      }
+    } catch (e) {
+      console.error('Error loading cached form data:', e);
+    }
+  }, [setValue]);
+
+  // Watch all form fields and save to sessionStorage
+  const formValues = watch();
+  useEffect(() => {
+    try {
+      const dataToCache = {
+        name: formValues.name || '',
+        email: formValues.email || '',
+        phone: formValues.phone || '',
+        address: formValues.address || '',
+        city: formValues.city || '',
+        province: formValues.province || '',
+        paymentMethod: formValues.paymentMethod || 'bank_transfer',
+        selectedAccount: selectedAccount
+      };
+      sessionStorage.setItem(CHECKOUT_CACHE_KEY, JSON.stringify(dataToCache));
+    } catch (e) {
+      console.error('Error caching form data:', e);
+    }
+  }, [formValues, selectedAccount]);
+
+  // Watch province to calculate dynamic shipping cost
+  const selectedProvince = watch("province");
+  
+  // Shipping cost based on province - Free shipping for orders Rs. 5000+
+  const SHIPPING_COST = getDeliveryFee(selectedProvince, totalPrice);
   const finalTotal = totalPrice + SHIPPING_COST;
 
   // Pakistani bank accounts for manual transfer
@@ -139,8 +187,10 @@ const Checkout = () => {
       formData.append('phone', data.phone);
       formData.append('shippingAddress', data.address);
       formData.append('city', data.city);
+      formData.append('province', data.province);
       formData.append('country', data.country || 'Pakistan');
       formData.append('subtotal', totalPrice.toString());
+      formData.append('shippingCost', SHIPPING_COST.toString());
       formData.append('paymentMethod', data.paymentMethod);
       formData.append('totalAmount', finalTotal.toString());
       
@@ -195,7 +245,7 @@ const Checkout = () => {
             shippingAddress: {
               street: data.address,
               city: data.city,
-              state: '',
+              state: data.province,
               zipCode: '',
               country: data.country || 'Pakistan'
             },
@@ -221,6 +271,8 @@ const Checkout = () => {
           description: `Tracking Number: ${response.trackingNumber}. Confirmation email sent!` 
         });
         
+        // Clear the form cache after successful order
+        sessionStorage.removeItem(CHECKOUT_CACHE_KEY);
         clearCart();
         navigate(`/track-order?ref=${response.trackingNumber}`);
       } else {
@@ -270,7 +322,7 @@ const Checkout = () => {
             shippingAddress: {
               street: data.address,
               city: data.city,
-              state: '',
+              state: data.province,
               zipCode: '',
               country: data.country || 'Pakistan'
             },
@@ -293,6 +345,8 @@ const Checkout = () => {
           description: `Order ID: ${orderId}. Confirmation email sent!` 
         });
         
+        // Clear the form cache after successful order
+        sessionStorage.removeItem(CHECKOUT_CACHE_KEY);
         clearCart();
         navigate(`/track-order?ref=${trackingNumber}`);
       } else {
@@ -308,7 +362,7 @@ const Checkout = () => {
   return (
     <PageTransition className="pt-16">
       <SEO title="Checkout | Ayosi" description="Secure checkout – enter your details to complete your order." canonical="/checkout" />
-      <div className="mx-auto max-w-4xl px-2 md:px-4 py-12">
+      <div className="mx-auto max-w-[1200px] px-4 md:px-8 lg:px-16 py-12">
         <h1 className="text-2xl font-semibold">Checkout</h1>
         <p className="text-sm text-muted-foreground mt-2">Please provide your shipping details.</p>
 
@@ -344,16 +398,43 @@ const Checkout = () => {
                   {errors.city && <p className="text-xs text-destructive mt-1">{errors.city.message}</p>}
                 </div>
                 <div>
-                  <Label htmlFor="country">Country</Label>
-                  <Input 
-                    id="country" 
-                    value="Pakistan" 
-                    disabled 
-                    className="bg-gray-50 text-gray-700"
-                    {...register("country")} 
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">Currently delivering within Pakistan only</p>
+                  <Label htmlFor="province">Province</Label>
+                  <Select 
+                    value={selectedProvince}
+                    onValueChange={(value) => setValue("province", value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select province" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {provinces.map((province) => (
+                        <SelectItem key={province.value} value={province.value}>
+                          {province.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {errors.province && <p className="text-xs text-destructive mt-1">{errors.province.message}</p>}
+                  {selectedProvince && totalPrice < 5000 && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Delivery fee: Rs. {getBaseDeliveryFee(selectedProvince)}
+                    </p>
+                  )}
+                  {totalPrice >= 5000 && (
+                    <p className="text-xs text-green-600 mt-1">Free delivery applied!</p>
+                  )}
                 </div>
+              </div>
+              <div>
+                <Label htmlFor="country">Country</Label>
+                <Input 
+                  id="country" 
+                  value="Pakistan" 
+                  disabled 
+                  className="bg-gray-50 text-gray-700"
+                  {...register("country")} 
+                />
+                <p className="text-xs text-muted-foreground mt-1">Currently delivering within Pakistan only</p>
               </div>
             </section>
 
@@ -425,43 +506,46 @@ const Checkout = () => {
                           </div>
                         ))}
 
-                        {selectedAccount && (
-                          <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                            <h4 className="font-medium text-blue-900 mb-2">Payment Instructions:</h4>
-                            <ol className="text-sm text-blue-800 space-y-1 list-decimal list-inside">
-                              <li>Transfer exactly Rs. {Math.round(finalTotal)} to the selected account</li>
-                              <li>Take a screenshot of the successful transaction</li>
-                              <li>Upload the screenshot below as proof of payment</li>
-                              <li>Your order will be processed after payment verification</li>
-                            </ol>
-                          </div>
-                        )}
+                        <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                          <h4 className="font-medium text-blue-900 mb-2">Payment Instructions:</h4>
+                          <ol className="text-sm text-blue-800 space-y-1 list-decimal list-inside">
+                            <li>Select any account above and copy the account number</li>
+                            <li>Transfer exactly Rs. {Math.round(finalTotal)} to the selected account</li>
+                            <li>Take a screenshot of the successful transaction</li>
+                            <li>Upload the screenshot below as proof of payment</li>
+                            <li>Your order will be processed after payment verification</li>
+                          </ol>
+                        </div>
 
-                        {selectedAccount && (
-                          <div className="space-y-3">
-                            <Label htmlFor="transactionProof" className="text-sm font-medium">
-                              Upload Payment Screenshot *
-                            </Label>
-                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                              <input
-                                type="file"
-                                id="transactionProof"
-                                accept="image/*"
-                                onChange={handleFileUpload}
-                                className="hidden"
-                              />
-                              <label htmlFor="transactionProof" className="cursor-pointer">
-                                <Upload className="h-8 w-8 mx-auto text-gray-400 mb-2" />
-                                <p className="text-sm text-gray-600">
-                                  {transactionProof ? transactionProof.name : "Click to upload payment screenshot"}
-                                </p>
-                                <p className="text-xs text-gray-500 mt-1">
-                                  PNG, JPG up to 5MB
-                                </p>
-                              </label>
-                            </div>
+                        <div className="space-y-3">
+                          <Label htmlFor="transactionProof" className="text-sm font-medium">
+                            Upload Payment Screenshot *
+                          </Label>
+                          <div className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${transactionProof ? 'border-green-400 bg-green-50' : 'border-gray-300'}`}>
+                            <input
+                              type="file"
+                              id="transactionProof"
+                              accept="image/*"
+                              onChange={handleFileUpload}
+                              className="hidden"
+                            />
+                            <label htmlFor="transactionProof" className="cursor-pointer">
+                              {transactionProof ? (
+                                <>
+                                  <CheckCircle className="h-8 w-8 mx-auto text-green-500 mb-2" />
+                                  <p className="text-sm text-green-700 font-medium">{transactionProof.name}</p>
+                                  <p className="text-xs text-green-600 mt-1">Click to change file</p>
+                                </>
+                              ) : (
+                                <>
+                                  <Upload className="h-8 w-8 mx-auto text-gray-400 mb-2" />
+                                  <p className="text-sm text-gray-600">Click to upload payment screenshot</p>
+                                  <p className="text-xs text-gray-500 mt-1">PNG, JPG up to 5MB</p>
+                                </>
+                              )}
+                            </label>
                           </div>
-                        )}
+                        </div>
                       </CardContent>
                     </Card>
                   )}
@@ -531,7 +615,9 @@ const Checkout = () => {
             <div className="flex items-center justify-between text-sm mt-2">
               <span>Shipping</span>
               <span className="font-medium">
-                {SHIPPING_COST === 0 ? (
+                {!selectedProvince ? (
+                  <span className="text-muted-foreground text-xs">Select province</span>
+                ) : SHIPPING_COST === 0 ? (
                   <span className="text-green-600">Free!</span>
                 ) : (
                   `Rs. ${SHIPPING_COST}`

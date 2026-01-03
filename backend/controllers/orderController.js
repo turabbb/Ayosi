@@ -15,8 +15,10 @@ const createOrder = async (req, res) => {
       phone,
       shippingAddress,
       city,
+      province,
       country,
       subtotal,
+      shippingCost,
       orderItems,
       totalAmount,
       paymentMethod,
@@ -43,13 +45,14 @@ const createOrder = async (req, res) => {
     }
 
     // Validate required fields
-    if (!customerName || !email || !phone || !shippingAddress || !city || !country || !parsedOrderItems || !subtotal || !totalAmount || !paymentMethod) {
+    if (!customerName || !email || !phone || !shippingAddress || !city || !province || !country || !parsedOrderItems || !subtotal || !totalAmount || !paymentMethod) {
       console.log('Missing fields:', {
         customerName: !!customerName,
         email: !!email,
         phone: !!phone,
         shippingAddress: !!shippingAddress,
         city: !!city,
+        province: !!province,
         country: !!country,
         orderItems: !!parsedOrderItems,
         subtotal: !!subtotal,
@@ -114,7 +117,9 @@ const createOrder = async (req, res) => {
       phone,
       shippingAddress,
       city,
+      province,
       country,
+      shippingCost: parseFloat(shippingCost) || 0,
       orderItems: populatedOrderItems,
       subtotal: parseFloat(subtotal),
       totalAmount: parseFloat(totalAmount),
@@ -123,7 +128,13 @@ const createOrder = async (req, res) => {
       paymentDetails: paymentMethod === 'bank_transfer' ? parsedPaymentDetails : undefined,
       transactionProof,
       paymentStatus: paymentMethod === 'cod' ? 'verified' : 'pending',
-      status: 'Received'
+      status: 'Received',
+      statusHistory: [{
+        status: 'Received',
+        description: 'Order placed successfully',
+        courierCompany: '',
+        timestamp: new Date()
+      }]
     });
 
     // Return the created order with tracking number

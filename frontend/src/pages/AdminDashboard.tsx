@@ -437,7 +437,7 @@ const AdminDashboard = () => {
   return (
     <PageTransition className="pt-16 min-h-screen bg-gray-50">
       <SEO title="Admin Dashboard | Ayosi" description="Manage products, orders and store overview." canonical="/admin/dashboard" />
-      <div className="mx-auto max-w-7xl px-4 py-12 space-y-8">
+      <div className="mx-auto max-w-[1600px] px-4 md:px-8 lg:px-16 py-12 space-y-8">
         <header className="flex items-center justify-between">
           <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
           <div className="flex items-center gap-4">
@@ -768,7 +768,27 @@ const AdminDashboard = () => {
                         <div>
                           <p className="font-medium">{selectedOrder.customerName || 'Unknown Customer'}</p>
                           <p className="text-sm text-gray-600">{selectedOrder.email || 'No email'}</p>
+                          <p className="text-sm text-gray-600">{selectedOrder.phone || 'No phone'}</p>
                           <p className="text-xs text-gray-500 font-mono">{selectedOrder.trackingNumber || 'No tracking number'}</p>
+                        </div>
+
+                        {/* Shipping Address */}
+                        <div className="bg-gray-50 p-3 rounded-lg">
+                          <h4 className="font-medium mb-2 flex items-center gap-2">
+                            <Truck className="h-4 w-4" />
+                            Shipping Address
+                          </h4>
+                          <div className="text-sm text-gray-600 space-y-1">
+                            <p>{selectedOrder.shippingAddress}</p>
+                            <p>{selectedOrder.city}{selectedOrder.province ? `, ${selectedOrder.province.charAt(0).toUpperCase() + selectedOrder.province.slice(1)}` : ''}</p>
+                            <p>{selectedOrder.country || 'Pakistan'}</p>
+                            {selectedOrder.shippingCost !== undefined && (
+                              <p className="text-xs text-gray-500 mt-2">
+                                Shipping Cost: Rs. {Math.round(selectedOrder.shippingCost)} 
+                                {selectedOrder.shippingCost === 0 && ' (Free Shipping)'}
+                              </p>
+                            )}
+                          </div>
                         </div>
 
                         <Separator />

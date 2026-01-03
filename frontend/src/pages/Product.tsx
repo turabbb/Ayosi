@@ -66,7 +66,7 @@ const ProductPage = () => {
   const ringSizes = [
     { value: "5-6", label: "Small (5–6)" },
     { value: "7-8", label: "Medium (7–8)" },
-    { value: "9-10", label: "Large (US 9–10)" }
+    { value: "9-10", label: "Large (9–10)" }
   ];
 
   const handleAddToCart = () => {
@@ -109,7 +109,7 @@ const ProductPage = () => {
   return (
     <PageTransition className="pt-16">
       <SEO title={`${product.title} | Ayosi`} description={`Shop ${product.title} – luxurious, modern design.`} canonical={`/product/${product.id}`} />
-      <div className="mx-auto max-w-6xl px-2 md:px-4 py-12 grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className="mx-auto max-w-[1400px] px-4 md:px-8 lg:px-16 py-12 grid grid-cols-1 md:grid-cols-2 gap-8">
         <div>
           {/* Main Image with Navigation */}
           <div className="relative group">

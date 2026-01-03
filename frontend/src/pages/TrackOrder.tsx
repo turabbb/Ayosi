@@ -150,11 +150,19 @@ const TrackOrder = () => {
     });
   };
 
+  const formatDateOnly = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
   return (
     <PageTransition className="pt-16 min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       <SEO title="Track Your Order | Ayosi" description="Enter your tracking number to view your order status and estimated delivery." canonical="/track-order" />
       
-      <div className="mx-auto max-w-4xl px-4 py-12">
+      <div className="mx-auto max-w-[1200px] px-4 md:px-8 lg:px-16 py-12">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Track Your Order</h1>
           <p className="text-gray-600">Enter your tracking number to see the latest updates on your jewelry order</p>
@@ -241,7 +249,7 @@ const TrackOrder = () => {
                     <p><span className="font-medium">Order Date:</span> {formatDate(order.createdAt)}</p>
                     <p><span className="font-medium">Total Amount:</span> <span className="text-xl font-bold text-green-600">Rs. {Math.round(order.totalAmount)}</span></p>
                     {order.estimatedDelivery && (
-                      <p><span className="font-medium">Estimated Delivery:</span> {formatDate(order.estimatedDelivery)}</p>
+                      <p><span className="font-medium">Estimated Delivery:</span> {formatDateOnly(order.estimatedDelivery)}</p>
                     )}
                   </div>
                 </div>
@@ -303,38 +311,40 @@ const TrackOrder = () => {
             </Card>
 
             {/* Status History */}
-            {order.statusHistory && order.statusHistory.length > 0 && (
-              <Card className="shadow-lg">
-                <CardHeader>
-                  <CardTitle>Tracking History</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {order.statusHistory.map((history: any, index: number) => (
-                      <div key={index} className="flex items-start gap-3 pb-4 border-l-2 border-gray-200 pl-4 ml-2 last:border-l-0">
-                        <div className="bg-white border-2 border-gray-200 rounded-full p-1 -ml-6">
-                          {getStatusIcon(history.status)}
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <Badge className={`${getStatusColor(history.status)} border-0 text-xs`}>
-                              {history.status}
-                            </Badge>
-                            <span className="text-sm text-gray-500">{formatDate(history.timestamp)}</span>
-                          </div>
-                          {history.description && (
-                            <p className="text-gray-600 text-sm">{history.description}</p>
-                          )}
-                          {history.courierCompany && (
-                            <p className="text-gray-500 text-xs">via {history.courierCompany}</p>
-                          )}
-                        </div>
+            <Card className="shadow-lg">
+              <CardHeader>
+                <CardTitle>Tracking History</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {(order.statusHistory && order.statusHistory.length > 0 ? order.statusHistory : [{
+                    status: order.status || 'Received',
+                    description: 'Order placed',
+                    timestamp: order.createdAt
+                  }]).slice().reverse().map((history: any, index: number) => (
+                    <div key={index} className="flex items-start gap-3 pb-4 border-l-2 border-gray-200 pl-4 ml-2 last:border-l-0">
+                      <div className="bg-white border-2 border-gray-200 rounded-full p-1 -ml-6">
+                        {getStatusIcon(history.status)}
                       </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Badge className={`${getStatusColor(history.status)} border-0 text-xs`}>
+                            {history.status}
+                          </Badge>
+                          <span className="text-sm text-gray-500">{formatDate(history.timestamp)}</span>
+                        </div>
+                        {history.description && (
+                          <p className="text-gray-600 text-sm">{history.description}</p>
+                        )}
+                        {history.courierCompany && (
+                          <p className="text-gray-500 text-xs">via {history.courierCompany}</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
           </div>
         )}
 

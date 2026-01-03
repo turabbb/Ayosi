@@ -7,7 +7,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import PageTransition from "@/components/PageTransition";
-import heroImage from "@/assets/hero-2.jpg";
+import heroImage from "@/assets/hero-3.jpg";
 
 const HomePage = () => {
   const { products, featuredProducts, isLoading } = useProducts();
@@ -63,11 +63,11 @@ const HomePage = () => {
 
   return (
     <PageTransition>
-      <SEO title="Luxury Jewellery Store | Ayosi" description="Premium rings, necklaces, earrings – shop luxurious jewellery in a refined, modern experience." canonical="/" />
+      <SEO title="Ayosi" description="Premium rings, necklaces, earrings – shop luxurious jewellery in a refined, modern experience." canonical="/" />
       <main className="pt-16">
         <HeroSlider />
 
-        <section className="mx-auto max-w-7xl px-2 md:px-4 py-12">
+        <section className="mx-auto max-w-[1600px] px-4 md:px-8 lg:px-16 py-12">
           <header className="text-center mb-8">
             <h2 className="text-2xl md:text-3xl font-semibold">Featured Pieces</h2>
             <p className="mt-2 text-muted-foreground">Curated favourites from our collection</p>
@@ -145,7 +145,7 @@ const HomePage = () => {
           </div>
         </section>
 
-        <section className="mx-auto max-w-7xl px-2 md:px-4 py-12">
+        <section className="mx-auto max-w-[1600px] px-4 md:px-8 lg:px-16 py-12">
           <header className="text-center mb-6">
             <h2 className="text-2xl md:text-3xl font-semibold">All Categories</h2>
             <p className="mt-2 text-muted-foreground">Explore our full selection</p>
@@ -236,7 +236,7 @@ const HomePage = () => {
           </div>
         </section>
 
-        <section className="mx-auto max-w-7xl px-2 md:px-4 py-16">
+        <section className="mx-auto max-w-[1600px] px-4 md:px-8 lg:px-16 py-16">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
             <div className="overflow-hidden rounded-lg">
               <img src={heroImage} alt="About Ayosi studio" className="w-full h-full object-cover" loading="lazy" />

@@ -36,7 +36,7 @@ const Collections = () => {
   return (
     <PageTransition className="pt-16">
       <SEO title="Collections | Ayosi" description="Browse all jewellery collections – rings, necklaces, earrings and more." canonical="/collections" />
-      <div className="mx-auto max-w-7xl px-2 md:px-4 py-8 grid grid-cols-1 md:grid-cols-4 gap-8">
+      <div className="mx-auto max-w-[1600px] px-4 md:px-8 lg:px-16 py-8 grid grid-cols-1 md:grid-cols-4 gap-8">
         <aside className="md:col-span-1 space-y-6">
           <div>
             <h3 className="text-sm font-medium">Category</h3>
@@ -62,13 +62,6 @@ const Collections = () => {
                 <span>Rs. {price[0]}</span>
                 <span>Rs. {price[1]}</span>
               </div>
-            </div>
-          </div>
-          <div>
-            <h3 className="text-sm font-medium">Layout</h3>
-            <div className="mt-3 flex gap-2">
-              <Button size="sm" variant={layout === "grid" ? "default" : "secondary"} onClick={() => setLayout("grid")}>Grid</Button>
-              <Button size="sm" variant={layout === "list" ? "default" : "secondary"} onClick={() => setLayout("list")}>List</Button>
             </div>
           </div>
         </aside>
@@ -121,52 +114,51 @@ const Collections = () => {
                   {layout === "list" ? (
                   <div 
                     onClick={() => handleProductClick(p.id)} 
-                    className="group flex items-center gap-6 border rounded-lg p-4 cursor-pointer hover:shadow-md hover:border-primary/20 transition-all duration-200 bg-card"
+                    className="group border rounded-lg p-3 md:p-4 cursor-pointer hover:shadow-md hover:border-primary/20 transition-all duration-200 bg-card"
                   >
-                    {/* Product Image */}
-                    <div className="flex-shrink-0">
-                      <div className="w-24 h-24 rounded-md overflow-hidden">
-                        <img 
-                          src={p.images[0]} 
-                          alt={`${p.title} product image`} 
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
-                          loading="lazy" 
-                        />
+                    {/* Mobile: Stack layout, Desktop: Row layout */}
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
+                      {/* Product Image */}
+                      <div className="flex-shrink-0">
+                        <div className="w-full sm:w-24 h-32 sm:h-24 rounded-md overflow-hidden">
+                          <img 
+                            src={p.images[0]} 
+                            alt={`${p.title} product image`} 
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
+                            loading="lazy" 
+                          />
+                        </div>
                       </div>
-                    </div>
-                    
-                    {/* Product Details */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1 mr-4">
-                          <h3 className="text-lg font-semibold text-foreground group-hover:text-primary transition-colors duration-200 truncate">
-                            {p.title}
-                          </h3>
-                          <div className="flex items-center gap-3 mt-1 mb-2">
-                            <p className="text-xl font-bold text-primary">Rs. {Math.round(p.price)}</p>
-                            <span className="text-sm text-muted-foreground bg-muted px-2 py-1 rounded-full">
-                              {p.category}
-                            </span>
-                          </div>
-                          <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
-                            {p.description || "A beautiful piece of jewellery."}
-                          </p>
+                      
+                      {/* Product Details */}
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-base sm:text-lg font-semibold text-foreground group-hover:text-primary transition-colors duration-200 line-clamp-1">
+                          {p.title}
+                        </h3>
+                        <div className="flex items-center gap-2 sm:gap-3 mt-1 mb-2">
+                          <p className="text-lg sm:text-xl font-bold text-primary">Rs. {Math.round(p.price)}</p>
+                          <span className="text-xs sm:text-sm text-muted-foreground bg-muted px-2 py-0.5 sm:py-1 rounded-full">
+                            {p.category}
+                          </span>
                         </div>
-                        
-                        {/* Add to Cart Button */}
-                        <div className="flex-shrink-0">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="opacity-70 group-hover:opacity-100 hover:bg-primary hover:text-primary-foreground transition-all duration-200"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              addToCart(p, 1);
-                            }}
-                          >
-                            Add to Cart
-                          </Button>
-                        </div>
+                        <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed hidden sm:block">
+                          {p.description || "A beautiful piece of jewellery."}
+                        </p>
+                      </div>
+                      
+                      {/* Add to Cart Button */}
+                      <div className="flex-shrink-0 w-full sm:w-auto">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full sm:w-auto opacity-100 sm:opacity-70 group-hover:opacity-100 hover:bg-primary hover:text-primary-foreground transition-all duration-200"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            addToCart(p, 1);
+                          }}
+                        >
+                          Add to Cart
+                        </Button>
                       </div>
                     </div>
                   </div>

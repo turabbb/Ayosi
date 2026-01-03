@@ -25,10 +25,21 @@ const orderSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  province: {
+    type: String,
+    required: true,
+    enum: ['punjab', 'sindh', 'balochistan', 'kpk', 'gilgit', 'islamabad'],
+    default: 'punjab'
+  },
   country: {
     type: String,
     required: true,
     default: 'Pakistan'
+  },
+  shippingCost: {
+    type: Number,
+    required: true,
+    default: 250
   },
   // Remove zip field as it's not needed for Pakistan
   orderItems: [{

@@ -3,7 +3,7 @@ import { ShoppingCart, Search, UserCog, Menu, ChevronDown, Settings, LogOut } fr
 import { useScrollDirection } from "@/hooks/useScrollDirection";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { CartDrawer } from "@/components/CartDrawer";
 import { SearchDialog } from "@/components/SearchDialog";
 import { useState, useRef, useEffect } from "react";
@@ -11,6 +11,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 
 export const Navbar = () => {
   const dir = useScrollDirection();
@@ -19,6 +20,7 @@ export const Navbar = () => {
   const navigate = useNavigate();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [contactModal, setContactModal] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const dropdownRef = useRef(null);
 
   // Close dropdown when clicking outside
@@ -51,9 +53,14 @@ export const Navbar = () => {
     navigate("/admin/dashboard");
   };
 
-  const handleContactClick = (e: React.MouseEvent) => {
-    e.preventDefault();
+  const handleContactClick = (e?: React.MouseEvent) => {
+    if (e) e.preventDefault();
+    setMobileMenuOpen(false);
     setContactModal(true);
+  };
+
+  const handleMobileNavClick = () => {
+    setMobileMenuOpen(false);
   };
 
   return (
@@ -64,17 +71,20 @@ export const Navbar = () => {
       }`}
     >
       <div className="backdrop-blur-md bg-background/80 border-b">
-        <nav className="mx-auto max-w-7xl px-2 md:px-4 h-16 flex items-center justify-between">
+        <nav className="mx-auto max-w-[1600px] px-4 md:px-8 lg:px-16 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Sheet>
+            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger className="md:hidden p-2">
                 <Menu className="h-5 w-5" />
               </SheetTrigger>
               <SheetContent side="left" className="w-64">
+                <VisuallyHidden>
+                  <SheetTitle>Navigation Menu</SheetTitle>
+                </VisuallyHidden>
                 <div className="mt-8 flex flex-col gap-4">
-                  <Link to="/" className="hover:underline">Home</Link>
-                  <Link to="/collections" className="hover:underline">Collections</Link>
-                  <button onClick={handleContactClick} className="hover:underline text-left">Contact Us</button>
+                  <Link to="/" className="hover:underline" onClick={handleMobileNavClick}>Home</Link>
+                  <Link to="/collections" className="hover:underline" onClick={handleMobileNavClick}>Collections</Link>
+                  <button onClick={() => handleContactClick()} className="hover:underline text-left">Contact Us</button>
                 </div>
               </SheetContent>
             </Sheet>

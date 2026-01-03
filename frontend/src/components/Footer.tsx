@@ -11,7 +11,7 @@ export const Footer = () => {
   return (
     <>
       <footer id="contact" className="mt-16 border-t">
-        <div className="mx-auto max-w-7xl px-2 md:px-4 py-12 grid grid-cols-1 md:grid-cols-4 gap-8">
+        <div className="mx-auto max-w-[1600px] px-4 md:px-8 lg:px-16 py-12 grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>
             <h3 className="font-serif text-lg">Ayosi</h3>
             <p className="mt-2 text-sm text-muted-foreground">Luxurious pieces, crafted to last.</p>
@@ -68,7 +68,7 @@ export const Footer = () => {
           </div>
         </div>
         <div className="border-t">
-          <div className="mx-auto max-w-7xl px-2 md:px-4 py-6 text-xs text-muted-foreground flex items-center justify-between">
+          <div className="mx-auto max-w-[1600px] px-4 md:px-8 lg:px-16 py-6 text-xs text-muted-foreground flex items-center justify-between">
             <span>© {new Date().getFullYear()} Ayosi Studio</span>
             <span>All rights reserved</span>
           </div>
