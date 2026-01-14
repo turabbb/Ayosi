@@ -24,6 +24,7 @@ const AdminDashboard = () => {
   // Product states
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState(0);
+  const [quantity, setQuantity] = useState(0);
   const [category, setCategory] = useState("Rings");
   const [description, setDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -84,7 +85,8 @@ const AdminDashboard = () => {
           category: product.category,
           images: product.images || [],
           description: product.description,
-          isFeatured: product.isFeatured || false
+          isFeatured: product.isFeatured || false,
+          quantity: product.quantity ?? 0
         }));
         
         console.log('✅ Setting products in admin:', apiProducts);
@@ -339,6 +341,7 @@ const AdminDashboard = () => {
       formData.append('price', price.toString());
       formData.append('category', category.trim());
       formData.append('isFeatured', isFeatured.toString());
+      formData.append('quantity', quantity.toString());
 
       // Add new uploaded images
       uploadedImages.forEach((file) => {
@@ -390,6 +393,7 @@ const AdminDashboard = () => {
     setEditingProduct(product);
     setTitle(product.title);
     setPrice(product.price);
+    setQuantity((product as any).quantity ?? 0);
     setCategory(product.category);
     setDescription(product.description || "");
     setIsFeatured(product.isFeatured || false);
@@ -406,6 +410,7 @@ const AdminDashboard = () => {
     setEditingProduct(null);
     setTitle("");
     setPrice(0);
+    setQuantity(0);
     setCategory("Rings");
     setDescription("");
     setIsFeatured(false);
@@ -447,7 +452,7 @@ const AdminDashboard = () => {
         </header>
 
         {/* Stats Cards */}
-        <section className="grid grid-cols-2 md:grid-cols-4 gap-6">
+        <section className="grid grid-cols-2 md:grid-cols-5 gap-6">
           <Card>
             <CardContent className="p-6">
               <p className="text-xs text-gray-600 uppercase tracking-wider">Total Sales</p>
@@ -470,6 +475,12 @@ const AdminDashboard = () => {
             <CardContent className="p-6">
               <p className="text-xs text-gray-600 uppercase tracking-wider">Featured</p>
               <p className="text-2xl font-bold text-orange-600">{products.filter(p => p.isFeatured).length}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-6">
+              <p className="text-xs text-gray-600 uppercase tracking-wider">Out of Stock</p>
+              <p className="text-2xl font-bold text-red-600">{products.filter(p => ((p as any).quantity ?? 0) === 0).length}</p>
             </CardContent>
           </Card>
         </section>
@@ -511,6 +522,18 @@ const AdminDashboard = () => {
                       step="0.01"
                       className={(!price || price <= 0) && isSubmitting ? "border-red-500" : ""}
                     />
+                  </div>
+                  <div>
+                    <Label>Stock Quantity *</Label>
+                    <Input
+                      type="number"
+                      value={quantity}
+                      onChange={(e) => setQuantity(Number(e.target.value))}
+                      min="0"
+                      step="1"
+                      placeholder="0"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">Set to 0 to mark as out of stock</p>
                   </div>
                   <div>
                     <Label>Category *</Label>
@@ -648,6 +671,17 @@ const AdminDashboard = () => {
                               <p className="text-xs text-gray-600 flex items-center gap-2">
                                 Rs. {Math.round(p.price || 0)} • {p.category} 
                                 {p.isFeatured && <Badge className="text-xs">Featured</Badge>}
+                                {((p as any).quantity ?? 0) === 0 ? (
+                                  <Badge variant="destructive" className="text-xs">Out of Stock</Badge>
+                                ) : ((p as any).quantity ?? 0) <= 10 ? (
+                                  <Badge variant="outline" className="text-xs text-orange-600 border-orange-300">
+                                    {(p as any).quantity} left
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="outline" className="text-xs text-green-600 border-green-300">
+                                    {(p as any).quantity} in stock
+                                  </Badge>
+                                )}
                               </p>
                             </div>
                           </div>

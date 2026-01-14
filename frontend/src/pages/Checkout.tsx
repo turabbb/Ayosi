@@ -276,10 +276,23 @@ const Checkout = () => {
         clearCart();
         navigate(`/track-order?ref=${response.trackingNumber}`);
       } else {
-        throw new Error("Failed to create order");
+        // Handle error from backend (e.g., stock issues)
+        const errorMessage = response.message || "Failed to create order";
+        throw new Error(errorMessage);
       }
     } catch (error: any) {
       console.error("Order creation error:", error);
+      
+      // Check if the error is related to stock
+      const errorMessage = error.response?.data?.message || error.message || "";
+      if (errorMessage.toLowerCase().includes('insufficient stock') || errorMessage.toLowerCase().includes('out of stock')) {
+        toast({
+          title: "Stock Issue",
+          description: errorMessage,
+          variant: "destructive"
+        });
+        return;
+      }
       
       // Fallback to local storage if backend is not available
       if (error.code === 'ERR_NETWORK' || error.response?.status >= 500) {

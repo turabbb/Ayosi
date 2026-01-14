@@ -9,6 +9,7 @@ export type Product = {
   description?: string;
   isFeatured?: boolean;
   inStock?: boolean;
+  quantity?: number;
   tags?: string[];
 };
 

@@ -45,7 +45,7 @@ const createProduct = async (req, res) => {
     console.log('Uploaded files:', req.files);
     
     // Validate required fields
-    const { title, description, price, category, isFeatured } = req.body;
+    const { title, description, price, category, isFeatured, quantity } = req.body;
     
     if (!title || !description || !price || !category) {
       return res.status(400).json({ 
@@ -69,7 +69,8 @@ const createProduct = async (req, res) => {
       price: Number(price),
       category: category.trim(),
       images: imageUrls,
-      isFeatured: Boolean(isFeatured)
+      isFeatured: Boolean(isFeatured),
+      quantity: Number(quantity) || 0
     };
 
     const product = await Product.create(productData);
@@ -130,6 +131,7 @@ const updateProduct = async (req, res) => {
     // Convert boolean and number fields
     if (updateData.isFeatured !== undefined) updateData.isFeatured = Boolean(updateData.isFeatured);
     if (updateData.price) updateData.price = Number(updateData.price);
+    if (updateData.quantity !== undefined) updateData.quantity = Number(updateData.quantity);
 
     // Handle image updates
     let newImageUrls = [];

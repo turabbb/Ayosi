@@ -78,6 +78,14 @@ const createOrder = async (req, res) => {
         // Try to find the product in MongoDB first
         const product = await Product.findById(item.product);
         if (product) {
+          // Check if enough stock is available
+          if (product.quantity < item.quantity) {
+            return res.status(400).json({
+              success: false,
+              message: `Insufficient stock for ${product.title}. Only ${product.quantity} items available.`
+            });
+          }
+          
           populatedOrderItems.push({
             product: product._id,
             title: product.title,
@@ -136,6 +144,21 @@ const createOrder = async (req, res) => {
         timestamp: new Date()
       }]
     });
+
+    // Reduce stock quantity for each product in the order
+    for (const item of parsedOrderItems) {
+      try {
+        const product = await Product.findById(item.product);
+        if (product) {
+          const newQuantity = Math.max(0, product.quantity - item.quantity);
+          await Product.findByIdAndUpdate(item.product, { quantity: newQuantity });
+          console.log(`Stock updated for ${product.title}: ${product.quantity} -> ${newQuantity}`);
+        }
+      } catch (stockError) {
+        console.error('Error updating stock:', stockError);
+        // Don't fail the order if stock update fails
+      }
+    }
 
     // Return the created order with tracking number
     res.status(201).json({

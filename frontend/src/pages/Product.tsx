@@ -4,10 +4,11 @@ import { useCart } from "@/context/CartContext";
 import { SEO } from "@/components/SEO";
 import { useState, useEffect } from "react";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
-import { Minus, Plus, ChevronLeft, ChevronRight, X, ZoomIn } from "lucide-react";
+import { Minus, Plus, ChevronLeft, ChevronRight, X, ZoomIn, AlertTriangle } from "lucide-react";
 import { useProducts } from "@/context/ProductsContext";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import PageTransition from "@/components/PageTransition";
+import { Badge } from "@/components/ui/badge";
 
 const ProductPage = () => {
   const { id } = useParams();
@@ -193,6 +194,26 @@ const ProductPage = () => {
         <div>
           <h1 className="text-2xl md:text-3xl font-semibold">{product.title}</h1>
           <p className="mt-2 text-lg">Rs. {Math.round(product.price)}</p>
+          
+          {/* Stock Status Display */}
+          <div className="mt-3">
+            {product.quantity === 0 ? (
+              <Badge variant="destructive" className="text-sm px-3 py-1">
+                <AlertTriangle className="h-3 w-3 mr-1" />
+                Out of Stock
+              </Badge>
+            ) : product.quantity <= 10 ? (
+              <Badge variant="outline" className="text-sm px-3 py-1 border-orange-400 text-orange-600 bg-orange-50">
+                <AlertTriangle className="h-3 w-3 mr-1" />
+                Only {product.quantity} left in stock - order soon!
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="text-sm px-3 py-1 border-green-400 text-green-600 bg-green-50">
+                In Stock
+              </Badge>
+            )}
+          </div>
+          
           <p className="mt-4 text-sm text-muted-foreground">{product.description}</p>
 
           <div className="mt-6 space-y-4">
@@ -207,31 +228,52 @@ const ProductPage = () => {
                       size="sm" 
                       onClick={() => setSelectedSize(size.value)} 
                       aria-pressed={selectedSize === size.value}
+                      disabled={product.quantity === 0}
                     >
                       {size.label}
                     </Button>
                   ))}
                 </div>
-                {!selectedSize && (
+                {!selectedSize && product.quantity > 0 && (
                   <p className="text-xs text-red-500 mt-1">Size selection is required for rings</p>
                 )}
               </div>
             )}
 
             <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2">
-                <Button variant="ghost" size="icon" aria-label="Decrease quantity" onClick={() => setQty(Math.max(1, qty - 1))}>
-                  <Minus className="h-4 w-4" />
+              {product.quantity > 0 && (
+                <div className="flex items-center gap-2">
+                  <Button variant="ghost" size="icon" aria-label="Decrease quantity" onClick={() => setQty(Math.max(1, qty - 1))}>
+                    <Minus className="h-4 w-4" />
+                  </Button>
+                  <span className="w-6 text-center">{qty}</span>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    aria-label="Increase quantity" 
+                    onClick={() => setQty(Math.min(product.quantity || 1, qty + 1))}
+                    disabled={qty >= (product.quantity || 1)}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+              {product.quantity === 0 ? (
+                <Button disabled className="bg-gray-400 cursor-not-allowed">
+                  Out of Stock
                 </Button>
-                <span className="w-6 text-center">{qty}</span>
-                <Button variant="ghost" size="icon" aria-label="Increase quantity" onClick={() => setQty(qty + 1)}>
-                  <Plus className="h-4 w-4" />
+              ) : (
+                <Button 
+                  onClick={handleAddToCart} 
+                  disabled={product.category === "Rings" && !selectedSize}
+                >
+                  Add to Cart
                 </Button>
-              </div>
-              <Button onClick={handleAddToCart} disabled={product.category === "Rings" && !selectedSize}>
-                Add to Cart
-              </Button>
+              )}
             </div>
+            {product.quantity > 0 && qty > product.quantity && (
+              <p className="text-xs text-orange-600">Maximum available quantity: {product.quantity}</p>
+            )}
           </div>
 
           <div className="mt-8 text-sm text-muted-foreground space-y-2">

@@ -25,6 +25,12 @@ const productSchema = new Schema({
     trim: true,
     enum: ['Rings', 'Bracelets', 'Earrings', 'Necklaces']
   },
+  quantity: {
+    type: Number,
+    required: true,
+    default: 0,
+    min: 0
+  },
   isFeatured: {
     type: Boolean,
     default: false

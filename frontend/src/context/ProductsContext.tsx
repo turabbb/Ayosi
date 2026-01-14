@@ -11,6 +11,7 @@ interface Product {
   category: string;
   isFeatured: boolean;
   inStock: boolean;
+  quantity: number;
   tags: string[];
   createdAt?: string;
   updatedAt?: string;
@@ -67,7 +68,8 @@ export const ProductsProvider: React.FC<ProductsProviderProps> = ({ children }) 
           images: p.images || [],
           category: p.category,
           isFeatured: p.isFeatured || false,
-          inStock: p.inStock !== undefined ? p.inStock : true,
+          inStock: p.quantity > 0,
+          quantity: p.quantity ?? 0,
           tags: p.tags || [p.category?.toLowerCase()].filter(Boolean)
         }));
         
@@ -105,7 +107,8 @@ export const ProductsProvider: React.FC<ProductsProviderProps> = ({ children }) 
           images: p.images || [],
           category: p.category,
           isFeatured: true,
-          inStock: p.inStock !== undefined ? p.inStock : true,
+          inStock: p.quantity > 0,
+          quantity: p.quantity ?? 0,
           tags: p.tags || [p.category?.toLowerCase()].filter(Boolean)
         }));
         
@@ -143,7 +146,8 @@ export const ProductsProvider: React.FC<ProductsProviderProps> = ({ children }) 
             images: response.images || [],
             category: response.category,
             isFeatured: response.isFeatured || false,
-            inStock: response.inStock !== undefined ? response.inStock : true,
+            inStock: response.quantity > 0,
+            quantity: response.quantity ?? 0,
             tags: response.tags || [response.category?.toLowerCase()].filter(Boolean)
           };
           console.log('✅ Product found and mapped:', product);
