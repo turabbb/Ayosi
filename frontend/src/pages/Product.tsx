@@ -243,7 +243,7 @@ const ProductPage = () => {
             ) : getTotalStock() <= 10 ? (
               <Badge variant="outline" className="text-sm px-3 py-1 border-orange-400 text-orange-600 bg-orange-50">
                 <AlertTriangle className="h-3 w-3 mr-1" />
-                Only {getTotalStock()} left in stock - order soon!
+                Low Stock - order soon!
               </Badge>
             ) : (
               <Badge variant="outline" className="text-sm px-3 py-1 border-green-400 text-green-600 bg-green-50">
@@ -282,8 +282,8 @@ const ProductPage = () => {
                           className={`${isOutOfStock ? 'opacity-50 cursor-not-allowed relative' : ''}`}
                         >
                           {size.label}
-                          {!isOutOfStock && stockForSize <= 5 && (
-                            <span className="ml-1 text-xs text-orange-500">({stockForSize})</span>
+                          {!isOutOfStock && stockForSize <= 5 && stockForSize > 0 && (
+                            <span className="ml-1 text-xs text-orange-500">(Low Stock)</span>
                           )}
                         </Button>
                         {isOutOfStock && (
@@ -297,11 +297,6 @@ const ProductPage = () => {
                 </div>
                 {!selectedSize && getTotalStock() > 0 && (
                   <p className="text-xs text-red-500 mt-4">Size selection is required</p>
-                )}
-                {selectedSize && (
-                  <p className="text-xs text-muted-foreground mt-4">
-                    {getMaxQuantity()} available in this size
-                  </p>
                 )}
               </div>
             )}

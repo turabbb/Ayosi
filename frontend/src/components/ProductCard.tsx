@@ -155,7 +155,7 @@ export const ProductCard = ({ product }: { product: Product }) => {
           {/* Low stock badge */}
           {isLowStock && (
             <Badge variant="outline" className="text-xs bg-orange-50 border-orange-400 text-orange-600 shadow-sm">
-              Only {effectiveStock} left
+              Low Stock
             </Badge>
           )}
           
