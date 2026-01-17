@@ -214,7 +214,8 @@ const Checkout = () => {
         title: item.title,
         quantity: item.quantity,
         price: item.price,
-        image: item.image
+        image: item.image,
+        selectedSize: item.selectedSize || null
       }))));
 
       console.log('Submitting order with payment method:', data.paymentMethod);
@@ -232,7 +233,7 @@ const Checkout = () => {
             trackingNumber: response.trackingNumber,
             orderDate: new Date().toLocaleDateString(),
             orderItems: items.map(item => ({
-              title: item.title,
+              title: item.title + (item.selectedSize ? ` (Size: ${item.selectedSize})` : ''),
               price: item.price,
               quantity: item.quantity,
               image: item.image,
@@ -322,7 +323,7 @@ const Checkout = () => {
             trackingNumber: trackingNumber,
             orderDate: new Date().toLocaleDateString(),
             orderItems: items.map(item => ({
-              title: item.title,
+              title: item.title + (item.selectedSize ? ` (Size: ${item.selectedSize})` : ''),
               price: item.price,
               quantity: item.quantity,
               image: item.image,

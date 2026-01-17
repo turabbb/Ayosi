@@ -60,7 +60,11 @@ const orderSchema = new mongoose.Schema({
       type: Number,
       required: true
     },
-    image: String
+    image: String,
+    selectedSize: {
+      type: String,
+      required: false // Only for sized rings
+    }
   }],
   subtotal: {
     type: Number,

@@ -15,7 +15,20 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import PageTransition from "@/components/PageTransition";
+
+// Category and subcategory definitions
+const categorySubcategories: Record<string, string[]> = {
+  'Rings': ['Golden', 'Silver'],
+  'Necklaces': ['Golden', 'Silver'],
+  'Bracelets': ['Golden', 'Silver', 'Arm Cuffs'],
+  'Earrings': ['Golden', 'Silver', 'Jhumkay'],
+  'Jewellery Box': ['Box', 'Gift Boxes'],
+  'Accessories': []
+};
+
+const allCategories = Object.keys(categorySubcategories);
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -26,6 +39,7 @@ const AdminDashboard = () => {
   const [price, setPrice] = useState(0);
   const [quantity, setQuantity] = useState(0);
   const [category, setCategory] = useState("Rings");
+  const [subcategory, setSubcategory] = useState("");
   const [description, setDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadedImages, setUploadedImages] = useState<File[]>([]);
@@ -36,6 +50,10 @@ const AdminDashboard = () => {
   const [existingImages, setExistingImages] = useState<string[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
   
+  // Ring-specific states
+  const [isAdjustable, setIsAdjustable] = useState(true);
+  const [sizedStock, setSizedStock] = useState({ small: 0, medium: 0, large: 0 });
+  
   // Orders states
   const [orders, setOrders] = useState<any[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(false);
@@ -45,6 +63,21 @@ const AdminDashboard = () => {
   const [shipmentDescription, setShipmentDescription] = useState("");
   const [estimatedDelivery, setEstimatedDelivery] = useState("");
   const [updatingOrder, setUpdatingOrder] = useState(false);
+
+  // Reset subcategory when category changes
+  useEffect(() => {
+    const subcats = categorySubcategories[category] || [];
+    if (subcats.length > 0) {
+      setSubcategory(subcats[0]);
+    } else {
+      setSubcategory("");
+    }
+    // Reset ring-specific settings when category changes
+    if (category !== "Rings") {
+      setIsAdjustable(true);
+      setSizedStock({ small: 0, medium: 0, large: 0 });
+    }
+  }, [category]);
 
   useEffect(() => {
     if (!user) {
@@ -83,10 +116,14 @@ const AdminDashboard = () => {
           title: product.title,
           price: product.price,
           category: product.category,
+          subcategory: product.subcategory || '',
           images: product.images || [],
           description: product.description,
           isFeatured: product.isFeatured || false,
-          quantity: product.quantity ?? 0
+          quantity: product.quantity ?? 0,
+          isAdjustable: product.isAdjustable ?? false,
+          sizedStock: product.sizedStock || { small: 0, medium: 0, large: 0 },
+          totalSizedStock: product.totalSizedStock || 0
         }));
         
         console.log('✅ Setting products in admin:', apiProducts);
@@ -340,8 +377,21 @@ const AdminDashboard = () => {
       formData.append('description', description.trim());
       formData.append('price', price.toString());
       formData.append('category', category.trim());
+      formData.append('subcategory', subcategory.trim());
       formData.append('isFeatured', isFeatured.toString());
-      formData.append('quantity', quantity.toString());
+      
+      // Handle ring-specific fields
+      if (category === 'Rings') {
+        formData.append('isAdjustable', isAdjustable.toString());
+        if (!isAdjustable) {
+          formData.append('sizedStock', JSON.stringify(sizedStock));
+          formData.append('quantity', '0'); // Sized rings use sizedStock
+        } else {
+          formData.append('quantity', quantity.toString());
+        }
+      } else {
+        formData.append('quantity', quantity.toString());
+      }
 
       // Add new uploaded images
       uploadedImages.forEach((file) => {
@@ -395,8 +445,20 @@ const AdminDashboard = () => {
     setPrice(product.price);
     setQuantity((product as any).quantity ?? 0);
     setCategory(product.category);
+    setSubcategory((product as any).subcategory || '');
     setDescription(product.description || "");
     setIsFeatured(product.isFeatured || false);
+    setExistingImages(product.images || []);
+    
+    // Set ring-specific fields
+    if (product.category === 'Rings') {
+      setIsAdjustable((product as any).isAdjustable ?? true);
+      setSizedStock((product as any).sizedStock || { small: 0, medium: 0, large: 0 });
+    } else {
+      setIsAdjustable(true);
+      setSizedStock({ small: 0, medium: 0, large: 0 });
+    }
+    
     setExistingImages(product.images || []);
     setUploadedImages([]);
     setImagePreviewUrls([]);
@@ -412,11 +474,14 @@ const AdminDashboard = () => {
     setPrice(0);
     setQuantity(0);
     setCategory("Rings");
+    setSubcategory("");
     setDescription("");
     setIsFeatured(false);
     setUploadedImages([]);
     setImagePreviewUrls([]);
     setExistingImages([]);
+    setIsAdjustable(true);
+    setSizedStock({ small: 0, medium: 0, large: 0 });
   };
 
   const deleteProduct = async (productId: string) => {
@@ -524,30 +589,108 @@ const AdminDashboard = () => {
                     />
                   </div>
                   <div>
-                    <Label>Stock Quantity *</Label>
-                    <Input
-                      type="number"
-                      value={quantity}
-                      onChange={(e) => setQuantity(Number(e.target.value))}
-                      min="0"
-                      step="1"
-                      placeholder="0"
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">Set to 0 to mark as out of stock</p>
-                  </div>
-                  <div>
                     <Label>Category *</Label>
                     <select
                       value={category}
                       onChange={(e) => setCategory(e.target.value)}
                       className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                     >
-                      <option value="Rings">Rings</option>
-                      <option value="Necklaces">Necklaces</option>
-                      <option value="Earrings">Earrings</option>
-                      <option value="Bracelets">Bracelets</option>
+                      {allCategories.map((cat) => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
                     </select>
                   </div>
+                  
+                  {/* Subcategory Selection */}
+                  {categorySubcategories[category]?.length > 0 && (
+                    <div>
+                      <Label>Subcategory *</Label>
+                      <select
+                        value={subcategory}
+                        onChange={(e) => setSubcategory(e.target.value)}
+                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                      >
+                        {categorySubcategories[category].map((sub) => (
+                          <option key={sub} value={sub}>{sub}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                  
+                  {/* Ring-specific options */}
+                  {category === "Rings" && (
+                    <div className="space-y-4 p-4 border rounded-lg bg-gray-50">
+                      <Label className="text-sm font-medium">Ring Type</Label>
+                      <RadioGroup 
+                        value={isAdjustable ? "adjustable" : "sized"} 
+                        onValueChange={(val) => setIsAdjustable(val === "adjustable")}
+                        className="flex gap-4"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="adjustable" id="adjustable" />
+                          <Label htmlFor="adjustable" className="cursor-pointer">Adjustable</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="sized" id="sized" />
+                          <Label htmlFor="sized" className="cursor-pointer">Sized</Label>
+                        </div>
+                      </RadioGroup>
+                      
+                      {!isAdjustable && (
+                        <div className="space-y-3 mt-4">
+                          <Label className="text-sm font-medium">Stock per Size</Label>
+                          <div className="grid grid-cols-3 gap-3">
+                            <div>
+                              <Label className="text-xs text-muted-foreground">Small (5-6)</Label>
+                              <Input
+                                type="number"
+                                min="0"
+                                value={sizedStock.small}
+                                onChange={(e) => setSizedStock({...sizedStock, small: Number(e.target.value)})}
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-xs text-muted-foreground">Medium (7-8)</Label>
+                              <Input
+                                type="number"
+                                min="0"
+                                value={sizedStock.medium}
+                                onChange={(e) => setSizedStock({...sizedStock, medium: Number(e.target.value)})}
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-xs text-muted-foreground">Large (9-10)</Label>
+                              <Input
+                                type="number"
+                                min="0"
+                                value={sizedStock.large}
+                                onChange={(e) => setSizedStock({...sizedStock, large: Number(e.target.value)})}
+                              />
+                            </div>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            Total: {sizedStock.small + sizedStock.medium + sizedStock.large} items
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
+                  {/* Stock Quantity - show only for non-rings or adjustable rings */}
+                  {(category !== "Rings" || isAdjustable) && (
+                    <div>
+                      <Label>Stock Quantity *</Label>
+                      <Input
+                        type="number"
+                        value={quantity}
+                        onChange={(e) => setQuantity(Number(e.target.value))}
+                        min="0"
+                        step="1"
+                        placeholder="0"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">Set to 0 to mark as out of stock</p>
+                    </div>
+                  )}
                   <div>
                     <Label>Description *</Label>
                     <textarea
@@ -668,19 +811,39 @@ const AdminDashboard = () => {
                             />
                             <div>
                               <p className="text-sm font-medium">{p.title || 'Untitled Product'}</p>
-                              <p className="text-xs text-gray-600 flex items-center gap-2">
-                                Rs. {Math.round(p.price || 0)} • {p.category} 
+                              <p className="text-xs text-gray-600 flex items-center gap-2 flex-wrap">
+                                Rs. {Math.round(p.price || 0)} • {p.category}
+                                {(p as any).subcategory && <span className="text-gray-400">/ {(p as any).subcategory}</span>}
                                 {p.isFeatured && <Badge className="text-xs">Featured</Badge>}
-                                {((p as any).quantity ?? 0) === 0 ? (
-                                  <Badge variant="destructive" className="text-xs">Out of Stock</Badge>
-                                ) : ((p as any).quantity ?? 0) <= 10 ? (
-                                  <Badge variant="outline" className="text-xs text-orange-600 border-orange-300">
-                                    {(p as any).quantity} left
-                                  </Badge>
+                                {p.category === 'Rings' && (p as any).isAdjustable && (
+                                  <Badge variant="outline" className="text-xs text-blue-600 border-blue-300">Adjustable</Badge>
+                                )}
+                                {p.category === 'Rings' && !(p as any).isAdjustable ? (
+                                  // Show sized stock for sized rings
+                                  ((p as any).totalSizedStock ?? 0) === 0 ? (
+                                    <Badge variant="destructive" className="text-xs">Out of Stock</Badge>
+                                  ) : ((p as any).totalSizedStock ?? 0) <= 10 ? (
+                                    <Badge variant="outline" className="text-xs text-orange-600 border-orange-300">
+                                      {(p as any).totalSizedStock} total
+                                    </Badge>
+                                  ) : (
+                                    <Badge variant="outline" className="text-xs text-green-600 border-green-300">
+                                      {(p as any).totalSizedStock} total
+                                    </Badge>
+                                  )
                                 ) : (
-                                  <Badge variant="outline" className="text-xs text-green-600 border-green-300">
-                                    {(p as any).quantity} in stock
-                                  </Badge>
+                                  // Show regular quantity for non-rings or adjustable rings
+                                  ((p as any).quantity ?? 0) === 0 ? (
+                                    <Badge variant="destructive" className="text-xs">Out of Stock</Badge>
+                                  ) : ((p as any).quantity ?? 0) <= 10 ? (
+                                    <Badge variant="outline" className="text-xs text-orange-600 border-orange-300">
+                                      {(p as any).quantity} left
+                                    </Badge>
+                                  ) : (
+                                    <Badge variant="outline" className="text-xs text-green-600 border-green-300">
+                                      {(p as any).quantity} in stock
+                                    </Badge>
+                                  )
                                 )}
                               </p>
                             </div>

@@ -38,7 +38,7 @@ export const CartDrawer: React.FC<{ children: React.ReactNode }> = ({ children }
           <AnimatePresence>
             {items.map((it, index) => (
               <motion.div 
-                key={it.productId} 
+                key={`${it.productId}${it.selectedSize ? `-${it.selectedSize}` : ''}`} 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, x: -100 }}
@@ -48,7 +48,14 @@ export const CartDrawer: React.FC<{ children: React.ReactNode }> = ({ children }
                 <img src={it.image} alt={`${it.title} product image`} className="h-16 w-16 object-cover rounded-md" loading="lazy" />
                 <div className="flex-1">
                   <div className="flex items-start justify-between">
-                    <p className="text-sm font-medium pr-2 line-clamp-2">{it.title}</p>
+                    <div>
+                      <p className="text-sm font-medium pr-2 line-clamp-2">{it.title}</p>
+                      {it.selectedSize && (
+                        <p className="text-xs text-muted-foreground">
+                          Size: {it.selectedSize === '5-6' ? 'Small (5-6)' : it.selectedSize === '7-8' ? 'Medium (7-8)' : 'Large (9-10)'}
+                        </p>
+                      )}
+                    </div>
                     <span className="text-sm font-medium">Rs. {Math.round(it.price * it.quantity)}</span>
                   </div>
                   <p className="text-xs text-muted-foreground">Rs. {Math.round(it.price)} each</p>
@@ -57,7 +64,7 @@ export const CartDrawer: React.FC<{ children: React.ReactNode }> = ({ children }
                       variant="ghost"
                       size="icon"
                       aria-label={`Decrease ${it.title}`}
-                      onClick={() => updateQuantity(it.productId, Math.max(1, it.quantity - 1))}
+                      onClick={() => updateQuantity(it.productId, Math.max(1, it.quantity - 1), it.selectedSize)}
                     >
                       <Minus className="h-4 w-4" />
                     </Button>
@@ -66,7 +73,7 @@ export const CartDrawer: React.FC<{ children: React.ReactNode }> = ({ children }
                       variant="ghost"
                       size="icon"
                       aria-label={`Increase ${it.title}`}
-                      onClick={() => updateQuantity(it.productId, it.quantity + 1)}
+                      onClick={() => updateQuantity(it.productId, it.quantity + 1, it.selectedSize)}
                     >
                       <Plus className="h-4 w-4" />
                     </Button>
@@ -74,7 +81,7 @@ export const CartDrawer: React.FC<{ children: React.ReactNode }> = ({ children }
                       variant="ghost"
                       size="icon"
                       aria-label={`Remove ${it.title}`}
-                      onClick={() => removeFromCart(it.productId)}
+                      onClick={() => removeFromCart(it.productId, it.selectedSize)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

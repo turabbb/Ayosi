@@ -1,16 +1,27 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 
+export type SizedStock = {
+  small: number;
+  medium: number;
+  large: number;
+};
+
 export type Product = {
   id: string;
   title: string;
   price: number;
   category: string;
+  subcategory?: string;
   images: string[];
   description?: string;
   isFeatured?: boolean;
   inStock?: boolean;
   quantity?: number;
   tags?: string[];
+  // Ring-specific fields
+  isAdjustable?: boolean;
+  sizedStock?: SizedStock;
+  totalSizedStock?: number;
 };
 
 export type CartItem = {
@@ -19,15 +30,16 @@ export type CartItem = {
   price: number;
   image: string;
   quantity: number;
+  selectedSize?: string; // For sized rings
 };
 
 type CartContextType = {
   items: CartItem[];
   totalItems: number;
   totalPrice: number;
-  addToCart: (product: Product, quantity?: number) => void;
-  removeFromCart: (productId: string) => void;
-  updateQuantity: (productId: string, quantity: number) => void;
+  addToCart: (product: Product, quantity?: number, selectedSize?: string) => void;
+  removeFromCart: (productId: string, selectedSize?: string) => void;
+  updateQuantity: (productId: string, quantity: number, selectedSize?: string) => void;
   clearCart: () => void;
 };
 
@@ -49,13 +61,28 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem(CART_KEY, JSON.stringify(items));
   }, [items]);
 
-  const addToCart = (product: Product, quantity = 1) => {
+  const addToCart = (product: Product, quantity = 1, selectedSize?: string) => {
     setItems((prev) => {
-      const existing = prev.find((i) => i.productId === product.id);
+      // For sized rings, use both productId and size as identifier
+      const itemKey = selectedSize ? `${product.id}_${selectedSize}` : product.id;
+      const existing = prev.find((i) => {
+        if (selectedSize) {
+          return i.productId === product.id && i.selectedSize === selectedSize;
+        }
+        return i.productId === product.id && !i.selectedSize;
+      });
+      
       if (existing) {
-        return prev.map((i) =>
-          i.productId === product.id ? { ...i, quantity: i.quantity + quantity } : i
-        );
+        return prev.map((i) => {
+          if (selectedSize) {
+            return (i.productId === product.id && i.selectedSize === selectedSize) 
+              ? { ...i, quantity: i.quantity + quantity } 
+              : i;
+          }
+          return i.productId === product.id && !i.selectedSize 
+            ? { ...i, quantity: i.quantity + quantity } 
+            : i;
+        });
       }
       return [
         ...prev,
@@ -65,17 +92,30 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
           price: product.price,
           image: product.images[0],
           quantity,
+          selectedSize,
         },
       ];
     });
   };
 
-  const removeFromCart = (productId: string) => {
-    setItems((prev) => prev.filter((i) => i.productId !== productId));
+  const removeFromCart = (productId: string, selectedSize?: string) => {
+    setItems((prev) => prev.filter((i) => {
+      if (selectedSize) {
+        return !(i.productId === productId && i.selectedSize === selectedSize);
+      }
+      return i.productId !== productId;
+    }));
   };
 
-  const updateQuantity = (productId: string, quantity: number) => {
-    setItems((prev) => prev.map((i) => (i.productId === productId ? { ...i, quantity } : i)));
+  const updateQuantity = (productId: string, quantity: number, selectedSize?: string) => {
+    setItems((prev) => prev.map((i) => {
+      if (selectedSize) {
+        return (i.productId === productId && i.selectedSize === selectedSize) 
+          ? { ...i, quantity } 
+          : i;
+      }
+      return i.productId === productId ? { ...i, quantity } : i;
+    }));
   };
 
   const clearCart = () => setItems([]);

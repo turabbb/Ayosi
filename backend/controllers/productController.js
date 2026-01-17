@@ -1,4 +1,5 @@
 const Product = require('../model/Product');
+const { categorySubcategories } = require('../model/Product');
 const { deleteImage, extractPublicId } = require('../config/cloudinary');
 
 // Get all products
@@ -38,6 +39,19 @@ const getProductById = async (req, res) => {
   }
 };
 
+// Get categories and subcategories mapping
+const getCategories = async (req, res) => {
+  try {
+    res.json({
+      success: true,
+      categories: categorySubcategories
+    });
+  } catch (error) {
+    console.error('Get categories error:', error);
+    res.status(500).json({ message: 'Failed to fetch categories' });
+  }
+};
+
 // Create product with Cloudinary image upload
 const createProduct = async (req, res) => {
   try {
@@ -45,7 +59,7 @@ const createProduct = async (req, res) => {
     console.log('Uploaded files:', req.files);
     
     // Validate required fields
-    const { title, description, price, category, isFeatured, quantity } = req.body;
+    const { title, description, price, category, subcategory, isFeatured, quantity, isAdjustable, sizedStock } = req.body;
     
     if (!title || !description || !price || !category) {
       return res.status(400).json({ 
@@ -68,10 +82,36 @@ const createProduct = async (req, res) => {
       description: description.trim(),
       price: Number(price),
       category: category.trim(),
+      subcategory: subcategory ? subcategory.trim() : '',
       images: imageUrls,
-      isFeatured: Boolean(isFeatured),
+      isFeatured: isFeatured === 'true' || isFeatured === true,
       quantity: Number(quantity) || 0
     };
+
+    // Handle ring-specific fields
+    if (category.trim() === 'Rings') {
+      productData.isAdjustable = isAdjustable === 'true' || isAdjustable === true;
+      
+      if (!productData.isAdjustable && sizedStock) {
+        // Parse sizedStock if it's a string (from FormData)
+        let parsedSizedStock = sizedStock;
+        if (typeof sizedStock === 'string') {
+          try {
+            parsedSizedStock = JSON.parse(sizedStock);
+          } catch (e) {
+            console.error('Error parsing sizedStock:', e);
+          }
+        }
+        
+        productData.sizedStock = {
+          small: Number(parsedSizedStock?.small) || 0,
+          medium: Number(parsedSizedStock?.medium) || 0,
+          large: Number(parsedSizedStock?.large) || 0
+        };
+        // Set quantity to 0 for sized rings (stock tracked per size)
+        productData.quantity = 0;
+      }
+    }
 
     const product = await Product.create(productData);
     
@@ -127,11 +167,37 @@ const updateProduct = async (req, res) => {
     if (updateData.title) updateData.title = updateData.title.trim();
     if (updateData.description) updateData.description = updateData.description.trim();
     if (updateData.category) updateData.category = updateData.category.trim();
+    if (updateData.subcategory) updateData.subcategory = updateData.subcategory.trim();
     
     // Convert boolean and number fields
-    if (updateData.isFeatured !== undefined) updateData.isFeatured = Boolean(updateData.isFeatured);
+    if (updateData.isFeatured !== undefined) updateData.isFeatured = updateData.isFeatured === 'true' || updateData.isFeatured === true;
     if (updateData.price) updateData.price = Number(updateData.price);
     if (updateData.quantity !== undefined) updateData.quantity = Number(updateData.quantity);
+
+    // Handle ring-specific fields
+    if (updateData.category === 'Rings') {
+      updateData.isAdjustable = updateData.isAdjustable === 'true' || updateData.isAdjustable === true;
+      
+      if (!updateData.isAdjustable && updateData.sizedStock) {
+        // Parse sizedStock if it's a string (from FormData)
+        let parsedSizedStock = updateData.sizedStock;
+        if (typeof updateData.sizedStock === 'string') {
+          try {
+            parsedSizedStock = JSON.parse(updateData.sizedStock);
+          } catch (e) {
+            console.error('Error parsing sizedStock:', e);
+          }
+        }
+        
+        updateData.sizedStock = {
+          small: Number(parsedSizedStock?.small) || 0,
+          medium: Number(parsedSizedStock?.medium) || 0,
+          large: Number(parsedSizedStock?.large) || 0
+        };
+        // Set quantity to 0 for sized rings
+        updateData.quantity = 0;
+      }
+    }
 
     // Handle image updates
     let newImageUrls = [];
@@ -255,5 +321,6 @@ module.exports = {
   getProductById,
   createProduct,
   updateProduct,
-  deleteProduct
+  deleteProduct,
+  getCategories
 };

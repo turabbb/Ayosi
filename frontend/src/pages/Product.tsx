@@ -10,6 +10,13 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import PageTransition from "@/components/PageTransition";
 import { Badge } from "@/components/ui/badge";
 
+// Ring sizes with their stock keys
+const ringSizes = [
+  { value: "5-6", label: "Small (5–6)", stockKey: "small" as const },
+  { value: "7-8", label: "Medium (7–8)", stockKey: "medium" as const },
+  { value: "9-10", label: "Large (9–10)", stockKey: "large" as const }
+];
+
 const ProductPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -64,18 +71,42 @@ const ProductPage = () => {
     );
   }
 
-  const ringSizes = [
-    { value: "5-6", label: "Small (5–6)" },
-    { value: "7-8", label: "Medium (7–8)" },
-    { value: "9-10", label: "Large (9–10)" }
-  ];
+  // Check if ring is adjustable or sized
+  const isRing = product.category === "Rings";
+  const isAdjustable = isRing && product.isAdjustable;
+  const isSizedRing = isRing && !product.isAdjustable;
+  
+  // Get stock for the selected size (for sized rings)
+  const getStockForSize = (stockKey: 'small' | 'medium' | 'large') => {
+    return product.sizedStock?.[stockKey] ?? 0;
+  };
+  
+  // Calculate total stock for the product
+  const getTotalStock = () => {
+    if (isSizedRing) {
+      return (product.sizedStock?.small || 0) + (product.sizedStock?.medium || 0) + (product.sizedStock?.large || 0);
+    }
+    return product.quantity || 0;
+  };
+  
+  // Get maximum quantity user can add based on selection
+  const getMaxQuantity = () => {
+    if (isSizedRing && selectedSize) {
+      const sizeData = ringSizes.find(s => s.value === selectedSize);
+      if (sizeData) {
+        return getStockForSize(sizeData.stockKey);
+      }
+    }
+    return product.quantity || 0;
+  };
 
   const handleAddToCart = () => {
-    if (product.category === "Rings" && !selectedSize) {
-      alert("Please select a size for rings");
+    // For sized rings, require size selection
+    if (isSizedRing && !selectedSize) {
+      alert("Please select a size for this ring");
       return;
     }
-    addToCart(product, qty);
+    addToCart(product, qty, isSizedRing ? selectedSize : undefined);
   };
 
   // Handle image error with better fallback
@@ -195,21 +226,35 @@ const ProductPage = () => {
           <h1 className="text-2xl md:text-3xl font-semibold">{product.title}</h1>
           <p className="mt-2 text-lg">Rs. {Math.round(product.price)}</p>
           
+          {/* Category/Subcategory display */}
+          {product.subcategory && (
+            <p className="text-sm text-muted-foreground mt-1">
+              {product.category} / {product.subcategory}
+            </p>
+          )}
+          
           {/* Stock Status Display */}
           <div className="mt-3">
-            {product.quantity === 0 ? (
+            {getTotalStock() === 0 ? (
               <Badge variant="destructive" className="text-sm px-3 py-1">
                 <AlertTriangle className="h-3 w-3 mr-1" />
                 Out of Stock
               </Badge>
-            ) : product.quantity <= 10 ? (
+            ) : getTotalStock() <= 10 ? (
               <Badge variant="outline" className="text-sm px-3 py-1 border-orange-400 text-orange-600 bg-orange-50">
                 <AlertTriangle className="h-3 w-3 mr-1" />
-                Only {product.quantity} left in stock - order soon!
+                Only {getTotalStock()} left in stock - order soon!
               </Badge>
             ) : (
               <Badge variant="outline" className="text-sm px-3 py-1 border-green-400 text-green-600 bg-green-50">
                 In Stock
+              </Badge>
+            )}
+            
+            {/* Show Adjustable badge for adjustable rings */}
+            {isAdjustable && (
+              <Badge variant="outline" className="text-sm px-3 py-1 ml-2 border-blue-400 text-blue-600 bg-blue-50">
+                Adjustable Ring
               </Badge>
             )}
           </div>
@@ -217,31 +262,52 @@ const ProductPage = () => {
           <p className="mt-4 text-sm text-muted-foreground">{product.description}</p>
 
           <div className="mt-6 space-y-4">
-            {product.category === "Rings" && (
+            {/* Size selection for SIZED rings only (not adjustable) */}
+            {isSizedRing && (
               <div>
-                <p className="text-sm font-medium mb-2">Size *</p>
+                <p className="text-sm font-medium mb-2">Select Size *</p>
                 <div className="flex flex-wrap gap-2">
-                  {ringSizes.map((size) => (
-                    <Button 
-                      key={size.value} 
-                      variant={selectedSize === size.value ? 'default' : 'secondary'} 
-                      size="sm" 
-                      onClick={() => setSelectedSize(size.value)} 
-                      aria-pressed={selectedSize === size.value}
-                      disabled={product.quantity === 0}
-                    >
-                      {size.label}
-                    </Button>
-                  ))}
+                  {ringSizes.map((size) => {
+                    const stockForSize = getStockForSize(size.stockKey);
+                    const isOutOfStock = stockForSize === 0;
+                    
+                    return (
+                      <div key={size.value} className="relative">
+                        <Button 
+                          variant={selectedSize === size.value ? 'default' : 'secondary'} 
+                          size="sm" 
+                          onClick={() => !isOutOfStock && setSelectedSize(size.value)} 
+                          aria-pressed={selectedSize === size.value}
+                          disabled={isOutOfStock}
+                          className={`${isOutOfStock ? 'opacity-50 cursor-not-allowed relative' : ''}`}
+                        >
+                          {size.label}
+                          {!isOutOfStock && stockForSize <= 5 && (
+                            <span className="ml-1 text-xs text-orange-500">({stockForSize})</span>
+                          )}
+                        </Button>
+                        {isOutOfStock && (
+                          <span className="absolute -bottom-5 left-1/2 transform -translate-x-1/2 text-xs text-red-500 whitespace-nowrap">
+                            Out of stock
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
-                {!selectedSize && product.quantity > 0 && (
-                  <p className="text-xs text-red-500 mt-1">Size selection is required for rings</p>
+                {!selectedSize && getTotalStock() > 0 && (
+                  <p className="text-xs text-red-500 mt-4">Size selection is required</p>
+                )}
+                {selectedSize && (
+                  <p className="text-xs text-muted-foreground mt-4">
+                    {getMaxQuantity()} available in this size
+                  </p>
                 )}
               </div>
             )}
 
             <div className="flex items-center gap-3">
-              {product.quantity > 0 && (
+              {getTotalStock() > 0 && (!isSizedRing || (isSizedRing && selectedSize && getMaxQuantity() > 0)) && (
                 <div className="flex items-center gap-2">
                   <Button variant="ghost" size="icon" aria-label="Decrease quantity" onClick={() => setQty(Math.max(1, qty - 1))}>
                     <Minus className="h-4 w-4" />
@@ -251,28 +317,33 @@ const ProductPage = () => {
                     variant="ghost" 
                     size="icon" 
                     aria-label="Increase quantity" 
-                    onClick={() => setQty(Math.min(product.quantity || 1, qty + 1))}
-                    disabled={qty >= (product.quantity || 1)}
+                    onClick={() => setQty(Math.min(getMaxQuantity() || 1, qty + 1))}
+                    disabled={qty >= (getMaxQuantity() || 1)}
                   >
                     <Plus className="h-4 w-4" />
                   </Button>
                 </div>
               )}
-              {product.quantity === 0 ? (
+              {getTotalStock() === 0 ? (
                 <Button disabled className="bg-gray-400 cursor-not-allowed">
                   Out of Stock
                 </Button>
+              ) : isSizedRing && !selectedSize ? (
+                <Button disabled className="bg-gray-300 cursor-not-allowed">
+                  Select a Size
+                </Button>
+              ) : isSizedRing && selectedSize && getMaxQuantity() === 0 ? (
+                <Button disabled className="bg-gray-400 cursor-not-allowed">
+                  Size Out of Stock
+                </Button>
               ) : (
-                <Button 
-                  onClick={handleAddToCart} 
-                  disabled={product.category === "Rings" && !selectedSize}
-                >
+                <Button onClick={handleAddToCart}>
                   Add to Cart
                 </Button>
               )}
             </div>
-            {product.quantity > 0 && qty > product.quantity && (
-              <p className="text-xs text-orange-600">Maximum available quantity: {product.quantity}</p>
+            {getTotalStock() > 0 && qty > getMaxQuantity() && (
+              <p className="text-xs text-orange-600">Maximum available quantity: {getMaxQuantity()}</p>
             )}
           </div>
 

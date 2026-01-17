@@ -1,15 +1,26 @@
 import { SEO } from "@/components/SEO";
 import { ProductCard } from "@/components/ProductCard";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { useProducts } from "@/context/ProductsContext";
 import { useCart } from "@/context/CartContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import PageTransition from "@/components/PageTransition";
 import { motion, AnimatePresence } from "framer-motion";
+import { Plus, ChevronRight } from "lucide-react";
 
-const allCategories = ["Rings", "Necklaces", "Earrings", "Bracelets"] as const;
+// Category and subcategory definitions
+const categorySubcategories: Record<string, string[]> = {
+  'Rings': ['Golden', 'Silver'],
+  'Necklaces': ['Golden', 'Silver'],
+  'Bracelets': ['Golden', 'Silver', 'Arm Cuffs'],
+  'Earrings': ['Golden', 'Silver', 'Jhumkay'],
+  'Jewellery Box': ['Box', 'Gift Boxes'],
+  'Accessories': []
+};
+
+const allCategories = Object.keys(categorySubcategories);
 
 type Layout = "grid" | "list";
 
@@ -17,17 +28,55 @@ const Collections = () => {
   const { products } = useProducts();
   const { addToCart } = useCart();
   const navigate = useNavigate();
-  const [category, setCategory] = useState<string | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  
+  // Get initial values from URL params
+  const initialCategory = searchParams.get('category') || null;
+  const initialSubcategory = searchParams.get('subcategory') || null;
+  
+  const [category, setCategory] = useState<string | null>(initialCategory);
+  const [subcategory, setSubcategory] = useState<string | null>(initialSubcategory);
   const [price, setPrice] = useState<[number, number]>([0, 2000]);
   const [layout, setLayout] = useState<Layout>("grid");
+  const [expandedCategory, setExpandedCategory] = useState<string | null>(initialCategory);
+
+  // Update state when URL params change
+  useEffect(() => {
+    const urlCategory = searchParams.get('category');
+    const urlSubcategory = searchParams.get('subcategory');
+    setCategory(urlCategory);
+    setSubcategory(urlSubcategory);
+    if (urlCategory) {
+      setExpandedCategory(urlCategory);
+    }
+  }, [searchParams]);
+
+  // Update URL when category/subcategory changes
+  const handleCategoryChange = (newCategory: string | null, newSubcategory?: string | null) => {
+    const params = new URLSearchParams();
+    if (newCategory) {
+      params.set('category', newCategory);
+      if (newSubcategory) {
+        params.set('subcategory', newSubcategory);
+      }
+    }
+    setSearchParams(params);
+    setCategory(newCategory);
+    setSubcategory(newSubcategory || null);
+  };
+
+  const toggleCategoryExpand = (cat: string) => {
+    setExpandedCategory(expandedCategory === cat ? null : cat);
+  };
 
   const filtered = useMemo(() => {
     return products.filter((p) => {
       const inCat = !category || p.category === category;
+      const inSubcat = !subcategory || (p as any).subcategory === subcategory;
       const inPrice = p.price >= price[0] && p.price <= price[1];
-      return inCat && inPrice;
+      return inCat && inSubcat && inPrice;
     });
-  }, [products, category, price]);
+  }, [products, category, subcategory, price]);
 
   const handleProductClick = (productId: string) => {
     navigate(`/product/${productId}`);
@@ -39,11 +88,73 @@ const Collections = () => {
       <div className="mx-auto max-w-[1600px] px-4 md:px-8 lg:px-16 py-8 grid grid-cols-1 md:grid-cols-4 gap-8">
         <aside className="md:col-span-1 space-y-6">
           <div>
-            <h3 className="text-sm font-medium">Category</h3>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <Button size="sm" variant={category === null ? "default" : "secondary"} onClick={() => setCategory(null)}>All</Button>
-              {allCategories.map((c) => (
-                <Button key={c} size="sm" variant={category === c ? "default" : "secondary"} onClick={() => setCategory(c)}>{c}</Button>
+            <h3 className="text-sm font-medium mb-3">Category</h3>
+            <div className="space-y-1">
+              {/* All Products Button */}
+              <Button 
+                size="sm" 
+                variant={category === null ? "default" : "ghost"} 
+                onClick={() => handleCategoryChange(null)}
+                className="w-full justify-start"
+              >
+                All Products
+              </Button>
+              
+              {/* Category list with expandable subcategories */}
+              {allCategories.map((cat) => (
+                <div key={cat} className="space-y-1">
+                  <div className="flex items-center gap-1">
+                    <Button 
+                      size="sm" 
+                      variant={category === cat && !subcategory ? "default" : "ghost"} 
+                      onClick={() => handleCategoryChange(cat)}
+                      className="flex-1 justify-start"
+                    >
+                      {cat}
+                    </Button>
+                    {categorySubcategories[cat]?.length > 0 && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="p-1 h-8 w-8"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleCategoryExpand(cat);
+                        }}
+                      >
+                        <Plus className={`h-4 w-4 transition-transform duration-200 ${
+                          expandedCategory === cat ? 'rotate-45' : ''
+                        }`} />
+                      </Button>
+                    )}
+                  </div>
+                  
+                  {/* Subcategories */}
+                  <AnimatePresence>
+                    {expandedCategory === cat && categorySubcategories[cat]?.length > 0 && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="pl-4 space-y-1 overflow-hidden"
+                      >
+                        {categorySubcategories[cat].map((subcat) => (
+                          <Button
+                            key={subcat}
+                            size="sm"
+                            variant={category === cat && subcategory === subcat ? "default" : "ghost"}
+                            onClick={() => handleCategoryChange(cat, subcat)}
+                            className="w-full justify-start text-sm"
+                          >
+                            <ChevronRight className="h-3 w-3 mr-1" />
+                            {subcat}
+                          </Button>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
               ))}
             </div>
           </div>
@@ -68,7 +179,14 @@ const Collections = () => {
         <section className="md:col-span-3">
           <header className="mb-4 flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-semibold">All Products</h1>
+              <h1 className="text-2xl font-semibold">
+                {category ? (
+                  <>
+                    {category}
+                    {subcategory && <span className="text-muted-foreground"> / {subcategory}</span>}
+                  </>
+                ) : 'All Products'}
+              </h1>
               <p className="text-sm text-muted-foreground mt-1">{filtered.length} products found</p>
             </div>
             <div className="flex items-center gap-2">
@@ -172,7 +290,7 @@ const Collections = () => {
           {filtered.length === 0 && (
             <div className="text-center py-12">
               <p className="text-muted-foreground">No products found matching your criteria.</p>
-              <Button variant="outline" className="mt-4" onClick={() => { setCategory(null); setPrice([0, 2000]); }}>
+              <Button variant="outline" className="mt-4" onClick={() => { handleCategoryChange(null); setPrice([0, 2000]); }}>
                 Clear Filters
               </Button>
             </div>

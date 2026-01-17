@@ -8,12 +8,14 @@ const {
   getProductById,
   createProduct,
   updateProduct,
-  deleteProduct
+  deleteProduct,
+  getCategories
 } = require('../controllers/productController');
 
 // Public routes
 router.get('/', getProducts);
 router.get('/featured', getFeaturedProducts);
+router.get('/categories', getCategories);
 router.get('/:id', getProductById);
 
 // Admin routes with image upload

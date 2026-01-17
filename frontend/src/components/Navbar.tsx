@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ShoppingCart, Search, UserCog, Menu, ChevronDown, Settings, LogOut } from "lucide-react";
+import { ShoppingCart, Search, UserCog, Menu, ChevronDown, Settings, LogOut, Plus } from "lucide-react";
 import { useScrollDirection } from "@/hooks/useScrollDirection";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
@@ -13,6 +13,18 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 
+// Category and subcategory definitions
+const categorySubcategories: Record<string, string[]> = {
+  'Rings': ['Golden', 'Silver'],
+  'Necklaces': ['Golden', 'Silver'],
+  'Bracelets': ['Golden', 'Silver', 'Arm Cuffs'],
+  'Earrings': ['Golden', 'Silver', 'Jhumkay'],
+  'Jewellery Box': ['Box', 'Gift Boxes'],
+  'Accessories': []
+};
+
+const allCategories = Object.keys(categorySubcategories);
+
 export const Navbar = () => {
   const dir = useScrollDirection();
   const { totalItems } = useCart();
@@ -22,12 +34,22 @@ export const Navbar = () => {
   const [contactModal, setContactModal] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const dropdownRef = useRef(null);
+  
+  // Collections dropdown states
+  const [collectionsDropdownOpen, setCollectionsDropdownOpen] = useState(false);
+  const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
+  const collectionsRef = useRef<HTMLDivElement>(null);
+  const dropdownTimeout = useRef<NodeJS.Timeout | null>(null);
 
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setIsDropdownOpen(false);
+      }
+      if (collectionsRef.current && !collectionsRef.current.contains(event.target)) {
+        setCollectionsDropdownOpen(false);
+        setExpandedCategory(null);
       }
     };
 
@@ -36,6 +58,35 @@ export const Navbar = () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
+
+  // Handle collections dropdown hover
+  const handleCollectionsMouseEnter = () => {
+    if (dropdownTimeout.current) {
+      clearTimeout(dropdownTimeout.current);
+    }
+    setCollectionsDropdownOpen(true);
+  };
+
+  const handleCollectionsMouseLeave = () => {
+    dropdownTimeout.current = setTimeout(() => {
+      setCollectionsDropdownOpen(false);
+      setExpandedCategory(null);
+    }, 150);
+  };
+
+  const handleCategoryHover = (category: string) => {
+    setExpandedCategory(category);
+  };
+
+  const navigateToCategory = (category: string, subcategory?: string) => {
+    setCollectionsDropdownOpen(false);
+    setExpandedCategory(null);
+    if (subcategory) {
+      navigate(`/collections?category=${encodeURIComponent(category)}&subcategory=${encodeURIComponent(subcategory)}`);
+    } else {
+      navigate(`/collections?category=${encodeURIComponent(category)}`);
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -77,13 +128,61 @@ export const Navbar = () => {
               <SheetTrigger className="md:hidden p-2">
                 <Menu className="h-5 w-5" />
               </SheetTrigger>
-              <SheetContent side="left" className="w-64">
+              <SheetContent side="left" className="w-64 overflow-y-auto">
                 <VisuallyHidden>
                   <SheetTitle>Navigation Menu</SheetTitle>
                 </VisuallyHidden>
                 <div className="mt-8 flex flex-col gap-4">
                   <Link to="/" className="hover:underline" onClick={handleMobileNavClick}>Home</Link>
-                  <Link to="/collections" className="hover:underline" onClick={handleMobileNavClick}>Collections</Link>
+                  
+                  {/* Mobile Collections with Categories */}
+                  <div className="space-y-2">
+                    <Link 
+                      to="/collections" 
+                      className="hover:underline font-medium"
+                      onClick={handleMobileNavClick}
+                    >
+                      All Collections
+                    </Link>
+                    <div className="pl-4 space-y-2">
+                      {allCategories.map((cat) => (
+                        <div key={cat} className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <Link 
+                              to={`/collections?category=${encodeURIComponent(cat)}`}
+                              className="hover:underline text-sm"
+                              onClick={handleMobileNavClick}
+                            >
+                              {cat}
+                            </Link>
+                            {categorySubcategories[cat]?.length > 0 && (
+                              <button
+                                onClick={() => setExpandedCategory(expandedCategory === cat ? null : cat)}
+                                className="p-1"
+                              >
+                                <Plus className={`h-3 w-3 transition-transform ${expandedCategory === cat ? 'rotate-45' : ''}`} />
+                              </button>
+                            )}
+                          </div>
+                          {expandedCategory === cat && categorySubcategories[cat]?.length > 0 && (
+                            <div className="pl-4 space-y-1">
+                              {categorySubcategories[cat].map((subcat) => (
+                                <Link
+                                  key={subcat}
+                                  to={`/collections?category=${encodeURIComponent(cat)}&subcategory=${encodeURIComponent(subcat)}`}
+                                  className="block text-xs text-muted-foreground hover:text-foreground"
+                                  onClick={handleMobileNavClick}
+                                >
+                                  {subcat}
+                                </Link>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  
                   <button onClick={() => handleContactClick()} className="hover:underline text-left">Contact Us</button>
                 </div>
               </SheetContent>
@@ -93,7 +192,97 @@ export const Navbar = () => {
 
           <div className="hidden md:flex items-center gap-8 text-sm">
             <Link to="/" className="hover:opacity-80 transition-opacity">Home</Link>
-            <Link to="/collections" className="hover:opacity-80 transition-opacity">Collections</Link>
+            
+            {/* Collections with Dropdown */}
+            <div 
+              ref={collectionsRef}
+              className="relative"
+              onMouseEnter={handleCollectionsMouseEnter}
+              onMouseLeave={handleCollectionsMouseLeave}
+            >
+              <button 
+                className="flex items-center gap-1 hover:opacity-80 transition-opacity"
+                onClick={() => navigate('/collections')}
+              >
+                Collections
+                <ChevronDown 
+                  className={`h-3 w-3 transition-transform duration-200 ${
+                    collectionsDropdownOpen ? 'rotate-180' : ''
+                  }`} 
+                />
+              </button>
+              
+              {/* Collections Dropdown */}
+              <AnimatePresence>
+                {collectionsDropdownOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.2 }}
+                    className="absolute left-0 top-full mt-2 bg-background border rounded-lg shadow-lg min-w-[200px] z-50"
+                  >
+                    <div className="py-2">
+                      {/* All Collections option */}
+                      <button
+                        onClick={() => navigateToCategory('')}
+                        className="w-full px-4 py-2 text-sm text-left hover:bg-muted transition-colors font-medium border-b"
+                      >
+                        All Collections
+                      </button>
+                      
+                      {allCategories.map((cat) => (
+                        <div 
+                          key={cat}
+                          className="relative"
+                          onMouseEnter={() => handleCategoryHover(cat)}
+                        >
+                          <div className="flex items-center justify-between px-4 py-2 hover:bg-muted transition-colors cursor-pointer">
+                            <button
+                              onClick={() => navigateToCategory(cat)}
+                              className="text-sm text-left flex-1"
+                            >
+                              {cat}
+                            </button>
+                            {categorySubcategories[cat]?.length > 0 && (
+                              <Plus className={`h-3 w-3 text-muted-foreground transition-transform duration-200 ${
+                                expandedCategory === cat ? 'rotate-45' : ''
+                              }`} />
+                            )}
+                          </div>
+                          
+                          {/* Subcategory dropdown */}
+                          <AnimatePresence>
+                            {expandedCategory === cat && categorySubcategories[cat]?.length > 0 && (
+                              <motion.div
+                                initial={{ opacity: 0, x: -10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: -10 }}
+                                transition={{ duration: 0.15 }}
+                                className="absolute left-full top-0 ml-1 bg-background border rounded-lg shadow-lg min-w-[150px]"
+                              >
+                                <div className="py-2">
+                                  {categorySubcategories[cat].map((subcat) => (
+                                    <button
+                                      key={subcat}
+                                      onClick={() => navigateToCategory(cat, subcat)}
+                                      className="w-full px-4 py-2 text-sm text-left hover:bg-muted transition-colors"
+                                    >
+                                      {subcat}
+                                    </button>
+                                  ))}
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+            
             <button onClick={handleContactClick} className="hover:opacity-80 transition-opacity">Contact Us</button>
           </div>
 

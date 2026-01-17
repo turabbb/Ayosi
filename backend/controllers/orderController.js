@@ -79,11 +79,24 @@ const createOrder = async (req, res) => {
         const product = await Product.findById(item.product);
         if (product) {
           // Check if enough stock is available
-          if (product.quantity < item.quantity) {
-            return res.status(400).json({
-              success: false,
-              message: `Insufficient stock for ${product.title}. Only ${product.quantity} items available.`
-            });
+          if (product.category === 'Rings' && !product.isAdjustable && item.selectedSize) {
+            // For sized rings, check stock for the specific size
+            const sizeKey = item.selectedSize === '5-6' ? 'small' : item.selectedSize === '7-8' ? 'medium' : 'large';
+            const sizeStock = product.sizedStock?.[sizeKey] || 0;
+            if (sizeStock < item.quantity) {
+              return res.status(400).json({
+                success: false,
+                message: `Insufficient stock for ${product.title} in size ${item.selectedSize}. Only ${sizeStock} items available.`
+              });
+            }
+          } else {
+            // For regular products and adjustable rings
+            if (product.quantity < item.quantity) {
+              return res.status(400).json({
+                success: false,
+                message: `Insufficient stock for ${product.title}. Only ${product.quantity} items available.`
+              });
+            }
           }
           
           populatedOrderItems.push({
@@ -91,7 +104,8 @@ const createOrder = async (req, res) => {
             title: product.title,
             price: product.price,
             quantity: item.quantity,
-            image: product.images[0] || ''
+            image: product.images[0] || '',
+            selectedSize: item.selectedSize || null
           });
         } else {
           // If not found in MongoDB, it might be a hardcoded product
@@ -101,7 +115,8 @@ const createOrder = async (req, res) => {
             title: item.title || `Product ${item.product}`, // Use provided title or fallback
             price: item.price || 0, // Use price from order item
             quantity: item.quantity,
-            image: item.image || '' // Use image from order item
+            image: item.image || '', // Use image from order item
+            selectedSize: item.selectedSize || null
           });
         }
       } catch (error) {
@@ -111,7 +126,8 @@ const createOrder = async (req, res) => {
           title: item.title || `Product ${item.product}`, // Use provided title or fallback
           price: item.price || 0,
           quantity: item.quantity,
-          image: item.image || ''
+          image: item.image || '',
+          selectedSize: item.selectedSize || null
         });
       }
     }
@@ -150,9 +166,23 @@ const createOrder = async (req, res) => {
       try {
         const product = await Product.findById(item.product);
         if (product) {
-          const newQuantity = Math.max(0, product.quantity - item.quantity);
-          await Product.findByIdAndUpdate(item.product, { quantity: newQuantity });
-          console.log(`Stock updated for ${product.title}: ${product.quantity} -> ${newQuantity}`);
+          if (product.category === 'Rings' && !product.isAdjustable && item.selectedSize) {
+            // For sized rings, reduce stock for the specific size
+            const sizeKey = item.selectedSize === '5-6' ? 'small' : item.selectedSize === '7-8' ? 'medium' : 'large';
+            const updatePath = `sizedStock.${sizeKey}`;
+            const currentStock = product.sizedStock?.[sizeKey] || 0;
+            const newStock = Math.max(0, currentStock - item.quantity);
+            
+            await Product.findByIdAndUpdate(item.product, { 
+              [updatePath]: newStock 
+            });
+            console.log(`Sized stock updated for ${product.title} (${sizeKey}): ${currentStock} -> ${newStock}`);
+          } else {
+            // For regular products and adjustable rings
+            const newQuantity = Math.max(0, product.quantity - item.quantity);
+            await Product.findByIdAndUpdate(item.product, { quantity: newQuantity });
+            console.log(`Stock updated for ${product.title}: ${product.quantity} -> ${newQuantity}`);
+          }
         }
       } catch (stockError) {
         console.error('Error updating stock:', stockError);

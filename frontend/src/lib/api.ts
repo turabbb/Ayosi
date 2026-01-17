@@ -98,6 +98,16 @@ export const productsAPI = {
       throw error;
     }
   },
+
+  getCategories: async () => {
+    try {
+      const response = await api.get('/products/categories');
+      return response.data;
+    } catch (error) {
+      console.error('Get categories API error:', error);
+      throw error;
+    }
+  },
   
   create: async (productData: any) => {
     try {

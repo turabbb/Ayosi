@@ -17,9 +17,14 @@ export const ProductCard = ({ product }: { product: Product }) => {
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const quickViewTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Check if product is out of stock
-  const isOutOfStock = (product.quantity ?? 0) === 0;
-  const isLowStock = (product.quantity ?? 0) > 0 && (product.quantity ?? 0) <= 10;
+  // Check if product is out of stock (handle both regular and sized rings)
+  const isSizedRing = product.category === 'Rings' && !(product as any).isAdjustable;
+  const totalSizedStock = isSizedRing 
+    ? ((product as any).sizedStock?.small || 0) + ((product as any).sizedStock?.medium || 0) + ((product as any).sizedStock?.large || 0)
+    : 0;
+  const effectiveStock = isSizedRing ? totalSizedStock : (product.quantity ?? 0);
+  const isOutOfStock = effectiveStock === 0;
+  const isLowStock = effectiveStock > 0 && effectiveStock <= 10;
 
   // Auto-cycle through images when hovered (faster timing)
   useEffect(() => {
@@ -150,7 +155,14 @@ export const ProductCard = ({ product }: { product: Product }) => {
           {/* Low stock badge */}
           {isLowStock && (
             <Badge variant="outline" className="text-xs bg-orange-50 border-orange-400 text-orange-600 shadow-sm">
-              Only {product.quantity} left
+              Only {effectiveStock} left
+            </Badge>
+          )}
+          
+          {/* Adjustable ring badge */}
+          {product.category === 'Rings' && (product as any).isAdjustable && (
+            <Badge variant="outline" className="text-xs bg-blue-50 border-blue-400 text-blue-600 shadow-sm">
+              Adjustable
             </Badge>
           )}
         </div>

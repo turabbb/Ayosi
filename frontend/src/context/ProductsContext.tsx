@@ -1,6 +1,12 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { productsAPI } from '@/lib/api';
 
+interface SizedStock {
+  small: number;
+  medium: number;
+  large: number;
+}
+
 interface Product {
   _id: string;
   id: string;
@@ -9,10 +15,15 @@ interface Product {
   price: number;
   images: string[];
   category: string;
+  subcategory?: string;
   isFeatured: boolean;
   inStock: boolean;
   quantity: number;
   tags: string[];
+  // Ring-specific fields
+  isAdjustable?: boolean;
+  sizedStock?: SizedStock;
+  totalSizedStock?: number;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -59,19 +70,32 @@ export const ProductsProvider: React.FC<ProductsProviderProps> = ({ children }) 
       // The backend returns products directly, not wrapped in success/data
       if (response && Array.isArray(response)) {
         console.log('✅ Products found:', response.length);
-        const mappedProducts: Product[] = response.map((p: any) => ({
-          _id: p._id,
-          id: p._id, // Use _id as id for consistency
-          title: p.title,
-          description: p.description || "A beautiful piece of jewellery.",
-          price: p.price,
-          images: p.images || [],
-          category: p.category,
-          isFeatured: p.isFeatured || false,
-          inStock: p.quantity > 0,
-          quantity: p.quantity ?? 0,
-          tags: p.tags || [p.category?.toLowerCase()].filter(Boolean)
-        }));
+        const mappedProducts: Product[] = response.map((p: any) => {
+          // Calculate total stock for sized rings
+          const isSizedRing = p.category === 'Rings' && !p.isAdjustable;
+          const totalSizedStock = isSizedRing 
+            ? (p.sizedStock?.small || 0) + (p.sizedStock?.medium || 0) + (p.sizedStock?.large || 0)
+            : 0;
+          const effectiveQuantity = isSizedRing ? totalSizedStock : (p.quantity ?? 0);
+          
+          return {
+            _id: p._id,
+            id: p._id, // Use _id as id for consistency
+            title: p.title,
+            description: p.description || "A beautiful piece of jewellery.",
+            price: p.price,
+            images: p.images || [],
+            category: p.category,
+            subcategory: p.subcategory || '',
+            isFeatured: p.isFeatured || false,
+            inStock: effectiveQuantity > 0,
+            quantity: p.quantity ?? 0,
+            isAdjustable: p.isAdjustable ?? false,
+            sizedStock: p.sizedStock || { small: 0, medium: 0, large: 0 },
+            totalSizedStock: totalSizedStock,
+            tags: p.tags || [p.category?.toLowerCase()].filter(Boolean)
+          };
+        });
         
         console.log('📋 Mapped products:', mappedProducts);
         setProducts(mappedProducts);
@@ -98,19 +122,31 @@ export const ProductsProvider: React.FC<ProductsProviderProps> = ({ children }) 
       
       if (response && Array.isArray(response)) {
         console.log('✅ Featured products found:', response.length);
-        const mappedFeatured: Product[] = response.map((p: any) => ({
-          _id: p._id,
-          id: p._id,
-          title: p.title,
-          description: p.description || "A beautiful piece of jewellery.",
-          price: p.price,
-          images: p.images || [],
-          category: p.category,
-          isFeatured: true,
-          inStock: p.quantity > 0,
-          quantity: p.quantity ?? 0,
-          tags: p.tags || [p.category?.toLowerCase()].filter(Boolean)
-        }));
+        const mappedFeatured: Product[] = response.map((p: any) => {
+          const isSizedRing = p.category === 'Rings' && !p.isAdjustable;
+          const totalSizedStock = isSizedRing 
+            ? (p.sizedStock?.small || 0) + (p.sizedStock?.medium || 0) + (p.sizedStock?.large || 0)
+            : 0;
+          const effectiveQuantity = isSizedRing ? totalSizedStock : (p.quantity ?? 0);
+          
+          return {
+            _id: p._id,
+            id: p._id,
+            title: p.title,
+            description: p.description || "A beautiful piece of jewellery.",
+            price: p.price,
+            images: p.images || [],
+            category: p.category,
+            subcategory: p.subcategory || '',
+            isFeatured: true,
+            inStock: effectiveQuantity > 0,
+            quantity: p.quantity ?? 0,
+            isAdjustable: p.isAdjustable ?? false,
+            sizedStock: p.sizedStock || { small: 0, medium: 0, large: 0 },
+            totalSizedStock: totalSizedStock,
+            tags: p.tags || [p.category?.toLowerCase()].filter(Boolean)
+          };
+        });
         
         console.log('🌟 Mapped featured products:', mappedFeatured);
         setFeaturedProducts(mappedFeatured);
@@ -137,6 +173,12 @@ export const ProductsProvider: React.FC<ProductsProviderProps> = ({ children }) 
         console.log('📦 Product API Response:', response);
         
         if (response && response._id) {
+          const isSizedRing = response.category === 'Rings' && !response.isAdjustable;
+          const totalSizedStock = isSizedRing 
+            ? (response.sizedStock?.small || 0) + (response.sizedStock?.medium || 0) + (response.sizedStock?.large || 0)
+            : 0;
+          const effectiveQuantity = isSizedRing ? totalSizedStock : (response.quantity ?? 0);
+          
           product = {
             _id: response._id,
             id: response._id,
@@ -145,9 +187,13 @@ export const ProductsProvider: React.FC<ProductsProviderProps> = ({ children }) 
             price: response.price,
             images: response.images || [],
             category: response.category,
+            subcategory: response.subcategory || '',
             isFeatured: response.isFeatured || false,
-            inStock: response.quantity > 0,
+            inStock: effectiveQuantity > 0,
             quantity: response.quantity ?? 0,
+            isAdjustable: response.isAdjustable ?? false,
+            sizedStock: response.sizedStock || { small: 0, medium: 0, large: 0 },
+            totalSizedStock: totalSizedStock,
             tags: response.tags || [response.category?.toLowerCase()].filter(Boolean)
           };
           console.log('✅ Product found and mapped:', product);
